@@ -1,0 +1,66 @@
+//Users
+{
+    "_id":ObjectID("XXX"),
+    "username":"Alvaro",
+    "email":"jagch1457@gmail.com",
+    "password":"123",
+    "families" :[
+        {
+            "family_id":ObjectID("AAA"),
+            "name":"Gutis"
+        }
+        ]
+}   
+//Families
+{
+    "_id":ObjectID("AAA"),
+    "name":"Gutis",
+    "members":[ObjectID("XXX"), ObjectID("YYY"),ObjectID("WWW")],
+    "admin":[ObjectID("XXX")]
+}
+//Loans
+{
+    "_id":ObjectID("111"),
+    "family_id":Object("AAA"),
+    "quantity":500,
+    "spenders":[
+        {   "user_id": ObjectID("XXX"),
+            "expense": 300
+        },
+        {   "user_id": ObjectID("YYY"),
+            "expense": 200
+        }],
+    "beneficiaries":[ObjectID("YYY"),ObjectID("WWW")],
+    "own_products":[
+        {
+            "user_id": ObjectID("WWW"),
+            "products":[
+                {
+                    "name":"Gasesosa",
+                    "price": 50,
+                    "discount": 0
+                }
+            ]
+        }
+    ],
+    "exclude_products":[
+        {
+            "user_id": ObjectID("YYY"),
+            "products":[
+                {
+                    "name":"Mayonesa",
+                    "price":15,
+                    "discount":0
+                },
+                {
+                    "name":"Arroz",
+                    "price":13,
+                    "discount":1.4
+                }
+            ]
+        }
+    ],
+    "balances":[{"user_id":Object("XXX"),"amount":300},
+                {"user_id":Object("YYY"),"amount":-100},
+                {"user_id":Object("WWW"),"amount":-200}]
+}

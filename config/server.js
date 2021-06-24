@@ -13,6 +13,7 @@ if(process.env.NODE_ENV !== 'production'){
     app.use(morgan('dev'));
 }
 
+app.use('/api/auth/',require('../components/users/auth/auth.user.router'));
 app.use('/api/users/',require('../components/users/users.router'));
 app.use('/api/families/',require('../components/families/families.router'));
 app.use('/api/users/',require('../components/users/users.router'));
