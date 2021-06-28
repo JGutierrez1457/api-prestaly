@@ -15,13 +15,16 @@
 {
     "_id":ObjectID("AAA"),
     "name":"Gutis",
+    "password":"123",
     "members":[ObjectID("XXX"), ObjectID("YYY"),ObjectID("WWW")],
-    "admin":[ObjectID("XXX")]
+    "admins":[ObjectID("XXX")],
+    "creator":ObjectID("XXX")
 }
 //Loans
 {
     "_id":ObjectID("111"),
-    "family_id":Object("AAA"),
+    "family":Object("AAA"),
+    "creator":Object("XXX"),
     "quantity":500,
     "spenders":[
         {   "user_id": ObjectID("XXX"),
@@ -60,7 +63,19 @@
             ]
         }
     ],
-    "balances":[{"user_id":Object("XXX"),"amount":300},
+    "image":"url",
+    "sub_balance":[{"user_id":Object("XXX"),"amount":300},
                 {"user_id":Object("YYY"),"amount":-100},
-                {"user_id":Object("WWW"),"amount":-200}]
+                {"user_id":Object("WWW"),"amount":-200}],
+    "balance":Object("B001")
+}
+//Balances
+{
+    "_id":Object("B001"),
+    "family":Object("AAA"),
+    "creator":Object("XXX"),
+    "balance":[{"user_id":Object("XXX"),"amount":144},
+        {"user_id":Object("YYY"),"amount":-123},
+        {"user_id":Object("WWW"),"amount":-432},
+        {"user_id":Object("ZZZ"),"amount":0}]
 }
