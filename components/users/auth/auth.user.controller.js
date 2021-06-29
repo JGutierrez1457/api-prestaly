@@ -15,7 +15,7 @@ authUserController.signIn = async(req, res)=>{
 
         const token = jwt.sign({username:existUser.username, id: existUser._id},'test',{expiresIn:'1h'})
 
-        return res.status(200).json({result:{username:existUser.username,full_name:existUser.first_name+' '+existUser.last_name, email:existUser.email, families: existUser.families}, token,message:{severity:'success',text:'Sign In Successfully'}})
+        return res.status(200).json({result:{username:existUser.username,full_name:existUser.first_name+(existUser.last_name?(' '+existUser.last_name):('')), email:existUser?.email, families: existUser.families}, token,message:{severity:'success',text:'Sign In Successfully'}})
     } catch (error) {
         return res.status(500).json({message:'Something went wrong'})
     }
@@ -36,7 +36,7 @@ authUserController.signUp = async(req, res)=>{
 
             const token = jwt.sign({username: newUser.username, id: newUser._id},'test',{expiresIn:'1h'});
     
-            return res.status(200).json({result:{username: newUser.username,full_name:first_name+' '+last_name, email: newUser.email, families: newUser.families},token,message:{severity:'success',text:'Sign Up Successfully'}});
+            return res.status(200).json({result:{username: newUser.username,full_name:newUser.first_name+(last_name?(' '+newUser.last_name):('')), email: newUser?.email, families: newUser.families},token,message:{severity:'success',text:'Sign Up Successfully'}});
         } catch (error) {
             console.log(error)
             return res.status(500).json({message:"Something went wrong.",error:error.message})

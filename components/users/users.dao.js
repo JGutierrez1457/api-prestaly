@@ -18,8 +18,12 @@ usersModel.statics.createUser = async function( query ){
     const newUser = await instUser.save();
     return newUser;
 }
+usersModel.statics.editUser = async function( _id,query,options){
+    const updatedUser = await this.findByIdAndUpdate(_id,query,options).exec();
+    return updatedUser;
+}
 usersModel.statics.deleteUser = async function(_id){
-    const deleteUser = await this.findByIdAndDelete({_id});
+    const deleteUser = await this.findByIdAndDelete({_id}).exec();
     return deleteUser;
 }
 module.exports = mongoose.model('User', usersModel)
