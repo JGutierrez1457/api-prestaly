@@ -15,14 +15,14 @@ authUserController.signIn = async(req, res)=>{
 
         const token = jwt.sign({username:existUser.username, id: existUser._id},'test',{expiresIn:'1h'})
 
-        res.status(200).json({result:{username:existUser.username, email:existUser.email, families: existUser.families}, token,message:{severity:'success',text:'Sign In Successfully'}})
+        return res.status(200).json({result:{username:existUser.username,full_name:existUser.first_name+' '+existUser.last_name, email:existUser.email, families: existUser.families}, token,message:{severity:'success',text:'Sign In Successfully'}})
     } catch (error) {
-        res.status(500).json({message:'Something went wrong'})
+        return res.status(500).json({message:'Something went wrong'})
     }
 
 }
 authUserController.signUp = async(req, res)=>{
-    const { username, password, confirmPassword,email } = req.body;
+    const { username,first_name,last_name, password, confirmPassword,email } = req.body;
         try {
             const existUsername = await usersDAO.getUserByUsername(username);
             if(existUsername) return res.status(400).json({message:{severity:'warning',text:'Username in use.'}});
@@ -32,14 +32,14 @@ authUserController.signUp = async(req, res)=>{
             const salt = await  bcrypt.genSalt(10);
             const passwordHashed = await bcrypt.hash(password, salt);
             const newUser = await usersDAO.createUser(
-                {username, email,password: passwordHashed });
+                {username, email,password: passwordHashed,first_name, last_name });
 
             const token = jwt.sign({username: newUser.username, id: newUser._id},'test',{expiresIn:'1h'});
     
-            res.status(200).json({result:{username: newUser.username, email: newUser.email, families: newUser.families},token,message:{severity:'success',text:'Sign Up Successfully'}});
+            return res.status(200).json({result:{username: newUser.username,full_name:first_name+' '+last_name, email: newUser.email, families: newUser.families},token,message:{severity:'success',text:'Sign Up Successfully'}});
         } catch (error) {
             console.log(error)
-            res.status(500).json({message:"Something went wrong.",error:error.message})
+            return res.status(500).json({message:"Something went wrong.",error:error.message})
         }
 }
 

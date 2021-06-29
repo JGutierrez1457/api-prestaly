@@ -16,5 +16,7 @@ if(process.env.NODE_ENV !== 'production'){
 app.use('/api/auth/',require('../components/users/auth/auth.user.router'));
 app.use('/api/users/',require('../components/users/users.router'));
 app.use('/api/families/',require('../components/families/families.router'));
+app.use('/api/loans/',require('../components/loans/loans.router'));
+app.use('/api/balances/',require('../components/balances/balances.router'));
 
 module.exports = app;

@@ -11,6 +11,12 @@ familiesController.getFamilies = async ( req, res)=>{
         return res.status(500).send(error.message)
     }
 }
+familiesController.getFamily = async (req, res)=>{
+
+}
+familiesController.getMemberFamily = async (req, res)=>{
+    
+}
 familiesController.createFamily = async ( req, res)=>{
     const { name } = req.body;
     const userId = req.userId;
@@ -23,7 +29,7 @@ familiesController.createFamily = async ( req, res)=>{
     }
     
 }
-familiesController.addMemberToFamily = async (req, res)=>{
+familiesController.addMemberFamily = async (req, res)=>{
     const { members } = req.body;
     const idFamily = req.params.idfamily;
     const userId = req.userId;
@@ -45,6 +51,18 @@ familiesController.addMemberToFamily = async (req, res)=>{
     } catch (error) {
         return res.status(500).send(error.message)
     }
+}
+familiesController.deleteMemberFamily = async (req, res)=>{
+
+}
+familiesController.addAdminFamily = async (req, res)=>{
+
+}
+familiesController.deleteAdminFamily = async (req, res)=>{
+
+}
+familiesController.deleteFamily = async (req, res)=>{
+
 }
 
 module.exports = familiesController;
