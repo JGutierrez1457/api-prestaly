@@ -6,7 +6,7 @@
     "password":"123",
     "families" :[
         {
-            "family_id":ObjectID("AAA"),
+            "_id":ObjectID("AAA"),
             "name":"Gutis"
         }
         ]
@@ -27,16 +27,16 @@
     "creator":Object("XXX"),
     "quantity":500,
     "spenders":[
-        {   "user_id": ObjectID("XXX"),
+        {   "_id": ObjectID("XXX"),
             "expense": 300
         },
-        {   "user_id": ObjectID("YYY"),
+        {   "_id": ObjectID("YYY"),
             "expense": 200
         }],
     "beneficiaries":[ObjectID("YYY"),ObjectID("WWW")],
     "own_products":[
         {
-            "user_id": ObjectID("WWW"),
+            "_id": ObjectID("WWW"),
             "products":[
                 {
                     "name":"Gasesosa",
@@ -48,7 +48,7 @@
     ],
     "exclude_products":[
         {
-            "user_id": ObjectID("YYY"),
+            "_id": ObjectID("YYY"),
             "products":[
                 {
                     "name":"Mayonesa",
@@ -64,9 +64,9 @@
         }
     ],
     "image":"url",
-    "sub_balance":[{"user_id":Object("XXX"),"amount":300},
-                {"user_id":Object("YYY"),"amount":-100},
-                {"user_id":Object("WWW"),"amount":-200}],
+    "sub_balance":[{"_id":Object("XXX"),"amount":300},
+                {"_id":Object("YYY"),"amount":-100},
+                {"_id":Object("WWW"),"amount":-200}],
     "balance":Object("B001")
 }
 //Balances
@@ -74,8 +74,8 @@
     "_id":Object("B001"),
     "family":Object("AAA"),
     "creator":Object("XXX"),
-    "balance":[{"user_id":Object("XXX"),"amount":144},
-        {"user_id":Object("YYY"),"amount":-123},
-        {"user_id":Object("WWW"),"amount":-432},
-        {"user_id":Object("ZZZ"),"amount":0}]
+    "balance":[{"_id":Object("XXX"),"amount":144},
+        {"_id":Object("YYY"),"amount":-123},
+        {"_id":Object("WWW"),"amount":-432},
+        {"_id":Object("ZZZ"),"amount":0}]
 }

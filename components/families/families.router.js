@@ -4,7 +4,7 @@ const auth = require('../../middleware/auth');
 
 router.get('/',auth,familiesController.getFamilies);
 router.get('/:idfamily',auth,familiesController.getFamily);
-router.get('/:idfamily/members',auth,familiesController.getMemberFamily);
+router.get('/:idfamily/members',auth,familiesController.getMembersFamily);
 
 
 router.post('/',auth,familiesController.createFamily);

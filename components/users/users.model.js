@@ -7,7 +7,7 @@ const usersModel = new Schema({
     password : { type: String, required: true, unique: false, trim: true},
     families : [ 
         { 
-            family_id: {type: Schema.Types.ObjectId ,ref: 'Family', required: false, unique: false},
+            _id: {type: Schema.Types.ObjectId ,ref: 'Family', required: false, unique: false},
             name:{ type:String, required:false, unique:false}
         }
     ]

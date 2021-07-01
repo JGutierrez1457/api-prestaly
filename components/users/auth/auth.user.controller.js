@@ -7,7 +7,7 @@ authUserController.signIn = async(req, res)=>{
     const { username, password } = req.body;
     try {
         
-        const existUser = await usersDAO.getUserByUsername(username);
+        const existUser = await usersDAO.getUserByCondition({username});
         if(!existUser) return res.status(404).json({message:"User don't exist"})
 
         const isPasswordCorrect = await bcrypt.compare(password, existUser.password);
@@ -24,7 +24,7 @@ authUserController.signIn = async(req, res)=>{
 authUserController.signUp = async(req, res)=>{
     const { username,first_name,last_name, password, confirmPassword,email } = req.body;
         try {
-            const existUsername = await usersDAO.getUserByUsername(username);
+            const existUsername = await usersDAO.getUserByCondition({username});
             if(existUsername) return res.status(400).json({message:{severity:'warning',text:'Username in use.'}});
 
             if(password !== confirmPassword) return res.status(400).json({message:{severity:'warning',text:"Passwords don't match"}});
