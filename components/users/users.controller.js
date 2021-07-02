@@ -1,6 +1,7 @@
 const usersController = {};
 const bcrypt = require('bcryptjs');
 const usersDAO = require('./users.dao');
+const familiesDAO = require('../families/families.dao');
 const jwt = require('jsonwebtoken');
 
 usersController.getUsers = async( req, res)=>{
@@ -80,9 +81,34 @@ usersController.deleteUser = async(req, res)=>{
         const comparePassword = await bcrypt.compare(password,existUser.password);
         if(!comparePassword)return res.status(400).send("Credentials Incorrects");
         const userDeleted = await usersDAO.deleteUser(iduser);
-        return res.status(200).send("User "+userDeleted.username+" deleted")
+        const families = userDeleted.families;
+        var deletedFamilies = [];
+        for( let family of families){
+            let updatedFamily = await familiesDAO.updateFamilyById(family._id,{$pull : { members : existUser._id  }}  ,{new: true});
+            if(updatedFamily.members.length === 0){
+                const deletedFamily = await familiesDAO.deleteFamilyById(family._id,null);
+                deletedFamilies = [ ...deletedFamilies, deletedFamily.name];
+                console.log(family.name);
+                continue;
+            }
+            const isAdmin = updatedFamily.admins.some( admin => admin.toString() === existUser._id.toString());
+            if(isAdmin){
+                updatedFamily = await familiesDAO.updateFamilyById(family._id,{$pull : { admins : existUser._id  }}  ,{new: true});
+            }
+            const isCreator = updatedFamily.creator.toString() === existUser._id.toString();
+            if(isCreator){
+                if(updatedFamily.admins.length > 0){
+                    updatedFamily = await familiesDAO
+                                    .updateFamilyById(family._id, { creator: updatedFamily.admins[0] }, {new :true});
+                }else{
+                    updatedFamily = await familiesDAO
+                                    .updateFamilyById(family._id, { creator: updatedFamily.members[0], $addToSet:{admins: updatedFamily.members[0] } }, {new :true});
+                }
+            }
+        }
+        return res.status(200).send(`User ${userDeleted.username} deleted${(deletedFamilies.length > 0)?` and families ${deletedFamilies.toString()} were deleted`:''}`)
     } catch (error) {
-        res.status(500).send(error)
+        res.status(500).send(error.message)
     }
 
 }

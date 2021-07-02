@@ -99,14 +99,14 @@ familiesController.deleteMemberFamily = async (req, res)=>{
         var updatedFamily = await familiesDAO
                                 .updateFamilyById(idfamily, { $pull: { members : existUsername._id }}, {new :true});
         const updatedUser = await userDAO.editUserById(existUsername._id,{ $pull: { families : { _id : idfamily }}}, {new : true} );
-        if(userIsAdmin){
-            updatedFamily = await familiesDAO
-                                .updateFamilyById(idfamily, { $pull: { admins : existUsername._id }}, {new :true});
-        };
         if(updatedFamily.members.length === 0){
             const deletedFamily = await familiesDAO.deleteFamilyById(idfamily,null);
             return res.status(200).json({message: `Family ${deletedFamily.name} deleted because has no members`})
         }
+        if(userIsAdmin){
+            updatedFamily = await familiesDAO
+                                .updateFamilyById(idfamily, { $pull: { admins : existUsername._id }}, {new :true});
+        };
         if(userIsCreator){
             if(updatedFamily.admins.length > 0){
                 const newCreator = await userDAO.getUserById(updatedFamily.admins[0]);
