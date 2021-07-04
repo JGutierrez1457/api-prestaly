@@ -11,6 +11,10 @@ usersModel.statics.getUserByCondition = async function(query){
     const user = await this.findOne(query).exec();
     return user;
 }
+usersModel.statics.getUserIdByUsername = async function(username){
+    const user = await this.findOne({username}).exec();
+    return user._id;
+}
 usersModel.statics.getUserById = async function(_id){
     const user = await this.findById(_id).exec();
     return user;

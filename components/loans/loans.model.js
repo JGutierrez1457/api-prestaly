@@ -5,7 +5,7 @@ const loansModel = new Schema({
     quantity:{type: Number, required:true, unique:false, trim: true},
     spenders:[
         {
-          user_id:{type: Schema.Types.ObjectId, ref : 'User'} ,
+          _id:{type: Schema.Types.ObjectId, ref : 'User'} ,
           expense:{type: Number, required:true, unique:false, trim: true}
     }],
     beneficiaries:[
@@ -13,9 +13,10 @@ const loansModel = new Schema({
     ],
     own_products:[
         {
-        user_id:{type: Schema.Types.ObjectId, ref : 'User'},
+        _id:{type: Schema.Types.ObjectId, ref : 'User'},
         products:[
             {
+                _id: false,
                 name:{type:String, required:false, unique:false, trim:true},
                 price:{type:Number, required:false, unique:false, trim:true},
                 discount:{type:Number, required:false, unique:false, trim:true}
@@ -25,9 +26,10 @@ const loansModel = new Schema({
     ],
     exclude_products:[
         {
-            user_id:{type: Schema.Types.ObjectId, ref : 'User'},
+            _id:{type: Schema.Types.ObjectId, ref : 'User'},
             products:[
                 {
+                    _id: false,
                     name:{type:String, required:false, unique:false, trim:true},
                     price:{type:Number, required:false, unique:false, trim:true},
                     discount:{type:Number, required:false, unique:false, trim:true}
@@ -35,13 +37,13 @@ const loansModel = new Schema({
             ]
         }
     ],
-    image:{type:String, required:false, unique:false, trim:true},
+    image:[{type:String, required:false, unique:false, trim:true}],
     sub_balance:[
         {
-            user_id:{type: Schema.Types.ObjectId, ref : 'User'},
+            _id:{type: Schema.Types.ObjectId, ref : 'User'},
             amount:{type: Number, required:false, unique:false, trim:true}
         }
     ],
     balance:{type: Schema.Types.ObjectId, ref : 'Balance'},
-})
+},{timestamps: true})
 module.exports = loansModel;
