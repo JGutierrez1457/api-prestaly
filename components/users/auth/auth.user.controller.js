@@ -38,7 +38,6 @@ authUserController.signUp = async(req, res)=>{
     
             return res.status(200).json({result:{username: newUser.username,full_name:newUser.first_name+(last_name?(' '+newUser.last_name):('')), email: newUser?.email, families: newUser.families},token,message:{severity:'success',text:'Sign Up Successfully'}});
         } catch (error) {
-            console.log(error)
             return res.status(500).json({message:"Something went wrong.",error:error.message})
         }
 }

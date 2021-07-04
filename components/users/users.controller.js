@@ -2,6 +2,7 @@ const usersController = {};
 const bcrypt = require('bcryptjs');
 const usersDAO = require('./users.dao');
 const familiesDAO = require('../families/families.dao');
+const loansDAO = require('../loans/loans.dao');
 const jwt = require('jsonwebtoken');
 
 usersController.getUsers = async( req, res)=>{
@@ -87,8 +88,8 @@ usersController.deleteUser = async(req, res)=>{
             let updatedFamily = await familiesDAO.updateFamilyById(family._id,{$pull : { members : existUser._id  }}  ,{new: true});
             if(updatedFamily.members.length === 0){
                 const deletedFamily = await familiesDAO.deleteFamilyById(family._id,null);
+                const loansDeleted = await loansDAO.deleteLoanByIdFamily(family._id,null);
                 deletedFamilies = [ ...deletedFamilies, deletedFamily.name];
-                console.log(family.name);
                 continue;
             }
             const isAdmin = updatedFamily.admins.some( admin => admin.toString() === existUser._id.toString());

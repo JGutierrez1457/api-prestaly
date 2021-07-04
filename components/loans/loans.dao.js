@@ -34,5 +34,9 @@ loansModel.statics.deleteLoanById = async function(_id){
     const deletedLoan = await this.findByIdAndDelete(_id).exec();
     return deletedLoan;
 }
+loansModel.statics.deleteLoanByIdFamily = async function(_idfamily, options){
+    const deletedLoan = await this.deleteMany({family: _idfamily}, options).exec();
+    return deletedLoan;
+}
 
 module.exports = mongoose.model('Loan', loansModel);
