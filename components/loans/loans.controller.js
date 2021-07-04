@@ -40,6 +40,33 @@ loansController.getLoan = async(req, res)=>{
         return res.status(500).send(error.message)
     }
 }
+loansController.getLoansFamily = async(req, res)=>{
+    const userId = req.userId;
+    const { idfamily } = req.params;
+    try {
+        const existFamily = await familiesDAO.getFamilyByIdPopulateMembers(idfamily);
+        if(!existFamily)return res.status(404).json({message:"Family don't exist"});
+        
+        const userIsMember = existFamily.members.some(member => member._id.toString() === userId);
+        if(!userIsMember) return res.status(400).json({message:"User is not member"});
+        
+        const loans = await loansDAO.getLoansByFamilyPopulate(idfamily);
+        const loansFormated = loans.map( loan => {
+            const beneficiaries = loan.beneficiaries.map( b => b.username);
+            const family = loan.family.name;
+            const creator = loan.creator.username;
+            const quantity = loan.quantity;
+            const spenders = loan.spenders.map( s => ({username: s._id.username, expense: s.expense}));
+            const own_products = loan.own_products.map( o => ({username: o._id.username, products: o.products}));
+            const exclude_products = loan.exclude_products.map( e => ({username: e._id.username, products: e.products}));
+            const sub_balance = loan.sub_balance.map( s =>({username: s._id.username, amount: s.amount}))
+            return ({family, creator, quantity, spenders, beneficiaries, own_products, exclude_products, sub_balance});
+        })
+        return res.status(200).json(loansFormated);
+    } catch (error) {
+        return res.status(500).send(error.message)
+    }
+}
 loansController.addLoan = async(req, res)=>{
     const userId = req.userId;
     const { idfamily } = req.params; 

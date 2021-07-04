@@ -4,6 +4,7 @@ const auth = require('../../middleware/auth')
 
 router.get('/',loansController.getLoans);
 router.get('/:idloans/families/:idfamily',auth,loansController.getLoan);
+router.get('/families/:idfamily',auth,loansController.getLoansFamily);
 
 router.post('/families/:idfamily',auth,loansController.addLoan);
 

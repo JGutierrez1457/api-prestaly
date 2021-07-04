@@ -21,6 +21,18 @@ loansModel.statics.getLoanByIdPopulate = async function(_id){
                                 .exec();
     return loan;
 }
+loansModel.statics.getLoansByFamilyPopulate = async function(_idfamily){
+    const loan = await this.find({family:_idfamily})
+                                .populate('family','-_id name')
+                                .populate('creator','-_id username')
+                                .populate('spenders._id','-_id username')
+                                .populate('beneficiaries','-_id username')
+                                .populate('own_products._id','-_id username')
+                                .populate('exclude_products._id','-_id username')
+                                .populate('sub_balance._id','-_id username')
+                                .exec();
+    return loan;
+}
 loansModel.statics.createLoan = async function( query ){
     const instLoan = new this(query);
     const newLoan = await instLoan.save();
