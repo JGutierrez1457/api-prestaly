@@ -3,10 +3,11 @@ const loansController = require('./loans.controller');
 const auth = require('../../middleware/auth')
 
 router.get('/',loansController.getLoans);
+router.get('/:idloans/families/:idfamily',auth,loansController.getLoan);
 
 router.post('/families/:idfamily',auth,loansController.addLoan);
 
-router.put('/:idloans/families/:idfamily',auth, loansController.updateLoan);
+router.patch('/:idloans/families/:idfamily',auth, loansController.updateLoan);
 
 router.delete('/:idloans/families/:idfamily',auth, loansController.deleteLoan);
 

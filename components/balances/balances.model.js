@@ -4,7 +4,7 @@ const balancesModel = new Schema({
     creator:{type: Schema.Types.ObjectId, ref : 'User'},
     balance:[
         {
-            user_id:{type: Schema.Types.ObjectId, ref : 'User'},
+            _id:{type: Schema.Types.ObjectId, ref : 'User'},
             amount:{type:Number, required:false, unique:false, trim:true}
         }
     ]
