@@ -2,6 +2,8 @@ const { Schema } = require('mongoose');
 const loansModel = new Schema({
     family:{type: Schema.Types.ObjectId, ref : 'Family'},
     creator:{type: Schema.Types.ObjectId, ref : 'User'},
+    date:{type: Date, required: true, unique: false, trim: true},
+    store:{type: String, required: false, unique: false, trim: true},
     quantity:{type: Number, required:true, unique:false, trim: true},
     spenders:[
         {

@@ -29,13 +29,15 @@ loansController.getLoan = async(req, res)=>{
         const loan = await loansDAO.getLoanByIdPopulate(idloans);
         const beneficiaries = loan.beneficiaries.map( b => b.username);
         const family = loan.family.name;
+        const date = loan.date;
+        const store = loan.store;
         const creator = loan.creator.username;
         const quantity = loan.quantity;
         const spenders = loan.spenders.map( s => ({username: s._id.username, expense: s.expense}));
         const own_products = loan.own_products.map( o => ({username: o._id.username, products: o.products}));
         const exclude_products = loan.exclude_products.map( e => ({username: e._id.username, products: e.products}));
         const sub_balance = loan.sub_balance.map( s =>({username: s._id.username, amount: s.amount}))
-        return res.status(200).json({family, creator, quantity, spenders, beneficiaries, own_products, exclude_products, sub_balance});
+        return res.status(200).json({ date, store, family, creator, quantity, spenders, beneficiaries, own_products, exclude_products, sub_balance});
     } catch (error) {
         return res.status(500).send(error.message)
     }
@@ -54,13 +56,15 @@ loansController.getLoansFamily = async(req, res)=>{
         const loansFormated = loans.map( loan => {
             const beneficiaries = loan.beneficiaries.map( b => b.username);
             const family = loan.family.name;
+            const date = loan.date;
+            const store = loan.store;
             const creator = loan.creator.username;
             const quantity = loan.quantity;
             const spenders = loan.spenders.map( s => ({username: s._id.username, expense: s.expense}));
             const own_products = loan.own_products.map( o => ({username: o._id.username, products: o.products}));
             const exclude_products = loan.exclude_products.map( e => ({username: e._id.username, products: e.products}));
             const sub_balance = loan.sub_balance.map( s =>({username: s._id.username, amount: s.amount}))
-            return ({family, creator, quantity, spenders, beneficiaries, own_products, exclude_products, sub_balance});
+            return ({ _id:loan._id, date, store, family, creator, quantity, spenders, beneficiaries, own_products, exclude_products, sub_balance});
         })
         return res.status(200).json(loansFormated);
     } catch (error) {
@@ -70,7 +74,7 @@ loansController.getLoansFamily = async(req, res)=>{
 loansController.addLoan = async(req, res)=>{
     const userId = req.userId;
     const { idfamily } = req.params; 
-    const { quantity, spenders, beneficiaries, own_products, exclude_products  } = req.body;
+    const { date, store, quantity, spenders, beneficiaries, own_products, exclude_products  } = req.body;
     try {
         const existFamily = await familiesDAO.getFamilyByIdPopulateMembers(idfamily);
         if(!existFamily)return res.status(404).json({message:"Family don't exist"});
@@ -141,6 +145,8 @@ loansController.addLoan = async(req, res)=>{
         const exclude_productsWithId = await Promise.all( exclude_products.map( async exclude_product =>({_id:await usersDAO.getUserIdByUsername(exclude_product.username),  products: exclude_product.products }) ));
         const final_sub_balanceWithId = await Promise.all( final_sub_balance.map( async balance =>({_id: await usersDAO.getUserIdByUsername(balance._id), amount: balance.amount }) ))
         const query = {
+            date,
+            store,
             family : idfamily,
             creator: userId,
             quantity,
@@ -161,7 +167,7 @@ loansController.addLoan = async(req, res)=>{
 loansController.updateLoan = async(req, res)=>{
     const userId = req.userId;
     const { idfamily, idloans } = req.params; 
-    const { quantity, spenders, beneficiaries, own_products, exclude_products  } = req.body;
+    const { date, store, quantity, spenders, beneficiaries, own_products, exclude_products  } = req.body;
     try {
         const existFamily = await familiesDAO.getFamilyByIdPopulateMembers(idfamily);
         if(!existFamily)return res.status(404).json({message:"Family don't exist"});
@@ -235,6 +241,8 @@ loansController.updateLoan = async(req, res)=>{
         const exclude_productsWithId = await Promise.all( exclude_products.map( async exclude_product =>({_id:await usersDAO.getUserIdByUsername(exclude_product.username),  products: exclude_product.products }) ));
         const final_sub_balanceWithId = await Promise.all( final_sub_balance.map( async balance =>({_id: await usersDAO.getUserIdByUsername(balance._id), amount: balance.amount }) ))
         const query = {
+            date,
+            store,
             quantity,
             spenders: spendersWithId,
             beneficiaries: beneficiariesWithId,
