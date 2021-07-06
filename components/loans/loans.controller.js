@@ -2,6 +2,7 @@ const loansController = {};
 const loansDAO = require('./loans.dao');
 const familiesDAO = require('../families/families.dao');
 const usersDAO = require('../users/users.dao');
+const getSubBalance = require('../../utils/getSubBalance');
 
 
 
@@ -90,55 +91,19 @@ loansController.addLoan = async(req, res)=>{
             const beneficiariesIsMember = existFamily.members.some(member => member.username === beneficiary);
             if(!beneficiariesIsMember) return res.status(400).json({message:`Beneficiary ${beneficiary} is not member`});
         }
-        const totalExpenses = spenders.map( spender => spender.expense ).reduce((acc, expense)=>acc+expense, 0);
+        const totalExpenses = Math.round(spenders.map( spender => spender.expense ).reduce((acc, expense)=>acc+expense, 0.0) * 100 )/100;
         if(totalExpenses!==quantity)return res.status(400).json({message: `Quantity ( ${quantity} ) and total expenses ( ${totalExpenses} ) aren't equal`})
         
         const involvedMembers =[...new Set([...spenders.map(spender => spender.username),...beneficiaries])];
         const sub_balance = involvedMembers.map( involved => ({_id:involved,amount:0}));
+
         const totalBeneficiaries = beneficiaries.length;
-        const final_sub_balance = sub_balance.map( involved =>{//_id:username, amount:0 of involved
-            var amount=involved.amount;
-            const isSpender = spenders.some( spender => spender.username === involved._id);
-            if(isSpender){
-                amount += spenders.find( spender => spender.username === involved._id ).expense;
-            }
-            const isBeneficiary = beneficiaries.some( beneficiary => beneficiary === involved._id);
-            if(isBeneficiary){
-                amount -= quantity/totalBeneficiaries;
-            }
-            const hasOwnProducts = own_products.some( own_product => own_product.username === involved._id);
-            if(hasOwnProducts){
-                const products =own_products.find( own_product => own_product.username === involved._id ).products;
-                const pricesProducts = products.map( p =>p.price-p.discount);
-                amount -= pricesProducts.reduce((acc, prices)=>acc+prices,0 );
-            }
-            const hasNonOwnProducts = own_products.some( own_product => own_product.username !== involved._id);
-            if(hasNonOwnProducts){
-                const nonOwnProducts =own_products.filter( own_product => own_product.username !== involved._id );
-                const pricesProducts = nonOwnProducts.map( p => p.products.map( item => item.price-item.discount))
-                                                .map( p => p.reduce((acc,price)=>acc+price,0))
-                                                .reduce((acc, price)=>acc+price,0);
-                amount += pricesProducts/(totalBeneficiaries-1)
-            }
-            const hasExcludeProducts = exclude_products.some( exclude_product => exclude_product.username === involved._id);
-            if(hasExcludeProducts){
-                const products =exclude_products.find( exclude_product => exclude_product.username === involved._id ).products;
-                const pricesProducts = products.map( p =>p.price-p.discount);
-                amount += pricesProducts.reduce((acc, prices)=>acc+prices,0 )/totalBeneficiaries;
-            }
-            const hasNonExcludeProducts = exclude_products.some( exclude_product => exclude_product.username !== involved._id);
-            if(hasNonExcludeProducts){
-                const nonExcludeProducts =exclude_products.filter( exclude_product => exclude_product.username !== involved._id );
-                const pricesProducts = nonExcludeProducts.map( p => p.products.map( item => item.price-item.discount))
-                                                .map( p => p.reduce((acc,price)=>acc+price,0))
-                                                .reduce((acc, price)=>acc+price,0);
-                amount -= (pricesProducts/(totalBeneficiaries))/(totalBeneficiaries-1)
-            }
-        
-
-            return ({_id:involved._id, amount: Math.round(amount * 100 )/100})
-
-        })
+        const existOwnProducts = own_products.length !== 0;
+        const existExcludeProducts = exclude_products.length !== 0;
+        const totalNonOwnProducts = own_products.map( p => p.products.map( item => item.price-item.discount))
+        .map( p => p.reduce((acc,price)=>acc+price,0))
+        .reduce((acc, price)=>acc+price,0);
+        const final_sub_balance = getSubBalance(spenders, beneficiaries, quantity, sub_balance, own_products, exclude_products, existOwnProducts, existExcludeProducts, totalNonOwnProducts, totalBeneficiaries);
         const spendersWithId = await Promise.all( spenders.map( async spender =>({_id: await usersDAO.getUserIdByUsername(spender.username), expense: spender.expense }) ))
         const beneficiariesWithId = await Promise.all( beneficiaries.map( async beneficiary =>await usersDAO.getUserIdByUsername(beneficiary)  ));
         const own_productsWithId = await Promise.all( own_products.map( async own_product =>({_id:await usersDAO.getUserIdByUsername(own_product.username),  products: own_product.products }) ));
@@ -186,55 +151,19 @@ loansController.updateLoan = async(req, res)=>{
             const beneficiariesIsMember = existFamily.members.some(member => member.username === beneficiary);
             if(!beneficiariesIsMember) return res.status(400).json({message:`Beneficiary ${beneficiary} is not member`});
         }
-        const totalExpenses = spenders.map( spender => spender.expense ).reduce((acc, expense)=>acc+expense, 0);
+        const totalExpenses =  Math.round(spenders.map( spender => spender.expense ).reduce((acc, expense)=>acc+expense, 0.0) * 100 )/100;
         if(totalExpenses!==quantity)return res.status(400).json({message: `Quantity ( ${quantity} ) and total expenses ( ${totalExpenses} ) aren't equal`})
         
         const involvedMembers =[...new Set([...spenders.map(spender => spender.username),...beneficiaries])];
         const sub_balance = involvedMembers.map( involved => ({_id:involved,amount:0}));
-        const totalBeneficiaries = beneficiaries.length;
-        const final_sub_balance = sub_balance.map( involved =>{//_id:username, amount:0 of involved
-            var amount=involved.amount;
-            const isSpender = spenders.some( spender => spender.username === involved._id);
-            if(isSpender){
-                amount += spenders.find( spender => spender.username === involved._id ).expense;
-            }
-            const isBeneficiary = beneficiaries.some( beneficiary => beneficiary === involved._id);
-            if(isBeneficiary){
-                amount -= quantity/totalBeneficiaries;
-            }
-            const hasOwnProducts = own_products.some( own_product => own_product.username === involved._id);
-            if(hasOwnProducts){
-                const products =own_products.find( own_product => own_product.username === involved._id ).products;
-                const pricesProducts = products.map( p =>p.price-p.discount);
-                amount -= pricesProducts.reduce((acc, prices)=>acc+prices,0 );
-            }
-            const hasNonOwnProducts = own_products.some( own_product => own_product.username !== involved._id);
-            if(hasNonOwnProducts){
-                const nonOwnProducts =own_products.filter( own_product => own_product.username !== involved._id );
-                const pricesProducts = nonOwnProducts.map( p => p.products.map( item => item.price-item.discount))
-                                                .map( p => p.reduce((acc,price)=>acc+price,0))
-                                                .reduce((acc, price)=>acc+price,0);
-                amount += pricesProducts/(totalBeneficiaries-1)
-            }
-            const hasExcludeProducts = exclude_products.some( exclude_product => exclude_product.username === involved._id);
-            if(hasExcludeProducts){
-                const products =exclude_products.find( exclude_product => exclude_product.username === involved._id ).products;
-                const pricesProducts = products.map( p =>p.price-p.discount);
-                amount += pricesProducts.reduce((acc, prices)=>acc+prices,0 )/totalBeneficiaries;
-            }
-            const hasNonExcludeProducts = exclude_products.some( exclude_product => exclude_product.username !== involved._id);
-            if(hasNonExcludeProducts){
-                const nonExcludeProducts =exclude_products.filter( exclude_product => exclude_product.username !== involved._id );
-                const pricesProducts = nonExcludeProducts.map( p => p.products.map( item => item.price-item.discount))
-                                                .map( p => p.reduce((acc,price)=>acc+price,0))
-                                                .reduce((acc, price)=>acc+price,0);
-                amount -= (pricesProducts/(totalBeneficiaries))/(totalBeneficiaries-1)
-            }
         
-
-            return ({_id:involved._id, amount: Math.round(amount * 100 )/100})
-
-        })
+        const totalBeneficiaries = beneficiaries.length;
+        const existOwnProducts = own_products.length !== 0;
+        const existExcludeProducts = exclude_products.length !== 0;
+        const totalNonOwnProducts = own_products.map( p => p.products.map( item => item.price-item.discount))
+        .map( p => p.reduce((acc,price)=>acc+price,0))
+        .reduce((acc, price)=>acc+price,0);
+        const final_sub_balance = getSubBalance(spenders, beneficiaries, quantity, sub_balance,  own_products, exclude_products, existOwnProducts, existExcludeProducts, totalNonOwnProducts, totalBeneficiaries);
         const spendersWithId = await Promise.all( spenders.map( async spender =>({_id: await usersDAO.getUserIdByUsername(spender.username), expense: spender.expense }) ))
         const beneficiariesWithId = await Promise.all( beneficiaries.map( async beneficiary =>await usersDAO.getUserIdByUsername(beneficiary)  ));
         const own_productsWithId = await Promise.all( own_products.map( async own_product =>({_id:await usersDAO.getUserIdByUsername(own_product.username),  products: own_product.products }) ));
@@ -257,6 +186,9 @@ loansController.updateLoan = async(req, res)=>{
         return res.status(500).send(error.message)
 
     }
+}
+loansController.putImages = async(req, res)=>{
+    
 }
 loansController.deleteLoan = async(req, res)=>{
     const userId = req.userId;
