@@ -3,6 +3,8 @@ const familiesDAO = require('./families.dao');
 const userDAO = require('../users/users.dao');
 const bcrypt = require('bcryptjs');
 const loansDAO = require('../loans/loans.dao');
+const aws = require('aws-sdk');
+const s3 = new aws.S3();
 
 familiesController.getFamilies = async ( req, res)=>{
     try {
@@ -102,7 +104,17 @@ familiesController.deleteMemberFamily = async (req, res)=>{
         const updatedUser = await userDAO.editUserById(existUsername._id,{ $pull: { families : { _id : idfamily }}}, {new : true} );
         if(updatedFamily.members.length === 0){
             const deletedFamily = await familiesDAO.deleteFamilyById(idfamily,null);
-            const loansDeleted = await loansDAO.deleteLoanByIdFamily(idfamily,null);
+            const loansDeleted = await loansDAO.getLoansByFamilyId(idFamily);
+            await loansDAO.deleteLoanByIdFamily(idFamily,null);
+            for( let loan of loansDeleted){
+                const images = loan.images;
+                for( let image of images){
+                    await s3.deleteObject({
+                            Bucket: process.env.S3_BUCKET,
+                            Key: image.key
+                    }).promise()
+                }
+            }
             return res.status(200).json({message: `Family ${deletedFamily.name} deleted because has no members`})
         }
         if(userIsAdmin){
@@ -205,8 +217,17 @@ familiesController.deleteFamily = async (req, res)=>{
         if(!comparePassword)return res.status(400).send("Credential Incorrect");
         const familyDeleted = await familiesDAO.deleteFamilyById(idFamily,null);
         await userDAO.editManyUser({ $pull: { families : { _id : familyDeleted._id }}},{ multi: true});
-        const loansDeleted = await loansDAO.deleteLoanByIdFamily(idFamily,null);
-
+        const loansDeleted = await loansDAO.getLoansByFamilyId(idFamily);
+        await loansDAO.deleteLoanByIdFamily(idFamily,null);
+        for( let loan of loansDeleted){
+            const images = loan.images;
+            for( let image of images){
+                await s3.deleteObject({
+                        Bucket: process.env.S3_BUCKET,
+                        Key: image.key
+                }).promise()
+            }
+        }
         return res.status(200).json({message:{severity:'success',text:`Family ${familyDeleted.name} deleted`}});
         
     } catch (error) {

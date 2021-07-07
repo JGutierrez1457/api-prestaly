@@ -3,7 +3,8 @@ const loansDAO = require('./loans.dao');
 const familiesDAO = require('../families/families.dao');
 const usersDAO = require('../users/users.dao');
 const getSubBalance = require('../../utils/getSubBalance');
-
+const aws = require('aws-sdk');
+const s3 = new aws.S3();
 
 
 loansController.getLoans = async(req, res)=>{
@@ -61,11 +62,12 @@ loansController.getLoansFamily = async(req, res)=>{
             const store = loan.store;
             const creator = loan.creator.username;
             const quantity = loan.quantity;
+            const images = loan.images;
             const spenders = loan.spenders.map( s => ({username: s._id.username, expense: s.expense}));
             const own_products = loan.own_products.map( o => ({username: o._id.username, products: o.products}));
             const exclude_products = loan.exclude_products.map( e => ({username: e._id.username, products: e.products}));
             const sub_balance = loan.sub_balance.map( s =>({username: s._id.username, amount: s.amount}))
-            return ({ _id:loan._id, date, store, family, creator, quantity, spenders, beneficiaries, own_products, exclude_products, sub_balance});
+            return ({ _id:loan._id, date, store, family, creator, images,quantity, spenders, beneficiaries, own_products, exclude_products, sub_balance});
         })
         return res.status(200).json(loansFormated);
     } catch (error) {
@@ -188,7 +190,54 @@ loansController.updateLoan = async(req, res)=>{
     }
 }
 loansController.putImages = async(req, res)=>{
-    
+    const userId = req.userId;
+    const { originalname: name,size, key, location: url } = req.file;
+    const { idfamily, idloans } = req.params; 
+    try {
+        const existFamily = await familiesDAO.getFamilyByIdPopulateMembers(idfamily);
+        if(!existFamily){
+            await s3.deleteObject({Bucket: process.env.S3_BUCKET, Key: key }).promise();
+            return res.status(404).json({message:"Family don't exist"})};
+
+        const existLoan = await loansDAO.getLoanById(idloans);
+        if(!existLoan){
+            await s3.deleteObject({Bucket: process.env.S3_BUCKET, Key: key }).promise();
+            return res.status(404).json({message:"Loan don't exist"})};
+        
+        const userIsMember = existFamily.members.some(member => member._id.toString() === userId);
+        if(!userIsMember){
+            await s3.deleteObject({Bucket: process.env.S3_BUCKET, Key: key }).promise();
+            return res.status(400).json({message:"User is not member"})};
+
+        const updatedLoan = await loansDAO.updateLoanById(idloans,{$addToSet: {images: { name, key, size, url  } }},{new : true });
+        return res.status(200).json('Image uploaded');
+
+    } catch (error) {
+        return res.status(500).send(error.message)
+    }
+}
+loansController.deleteImage = async(req, res)=>{
+    const userId = req.userId;
+    const { idfamily, idloans, key } = req.params; 
+    try {
+        const existFamily = await familiesDAO.getFamilyByIdPopulateMembers(idfamily);
+        if(!existFamily)return res.status(404).json({message:"Family don't exist"});
+        
+        const userIsMember = existFamily.members.some(member => member._id.toString() === userId);
+        if(!userIsMember) return res.status(400).json({message:"User is not member"});
+        
+        const existLoan = await loansDAO.getLoanById(idloans);
+        if(!existLoan){
+            return res.status(404).json({message:"Loan don't exist"})
+        };
+
+        await s3.deleteObject({Bucket: process.env.S3_BUCKET, Key: key }).promise();
+        const updatedLoan = await loansDAO.updateLoanById(idloans, { $pull: { images : { key }}}, { new: true});
+
+        return res.status(200).send(`Image ${key} deleted`)
+    } catch (error) {
+        return res.status(500).send(error.message)
+    }
 }
 loansController.deleteLoan = async(req, res)=>{
     const userId = req.userId;
@@ -201,10 +250,16 @@ loansController.deleteLoan = async(req, res)=>{
         if(!userIsMember) return res.status(400).json({message:"User is not member"});
 
         const deletedLoan = await loansDAO.deleteLoanById(idloans);
-
+        const images = deletedLoan.images;
+        for( let image of images){
+            await s3.deleteObject({
+                    Bucket: process.env.S3_BUCKET,
+                    Key: image.key
+            }).promise()
+        }
         return res.status(200).json({message: `Loan deleted in family ${existFamily.name}`})
 
-    }catch(erro){
+    }catch(error){
         return res.status(500).send(error.message)
     }   
 }

@@ -2,7 +2,7 @@ const router = require('express').Router();
 const familiesController = require('./families.controller');
 const auth = require('../../middleware/auth');
 
-router.get('/',auth,familiesController.getFamilies);
+router.get('/',familiesController.getFamilies);
 router.get('/:idfamily',auth,familiesController.getFamily);
 router.get('/:idfamily/members',auth,familiesController.getMembersFamily);
 

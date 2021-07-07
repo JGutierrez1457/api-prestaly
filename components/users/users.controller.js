@@ -4,6 +4,8 @@ const usersDAO = require('./users.dao');
 const familiesDAO = require('../families/families.dao');
 const loansDAO = require('../loans/loans.dao');
 const jwt = require('jsonwebtoken');
+const aws = require('aws-sdk');
+const s3 = new aws.S3();
 
 usersController.getUsers = async( req, res)=>{
     try {
@@ -88,7 +90,17 @@ usersController.deleteUser = async(req, res)=>{
             let updatedFamily = await familiesDAO.updateFamilyById(family._id,{$pull : { members : existUser._id  }}  ,{new: true});
             if(updatedFamily.members.length === 0){
                 const deletedFamily = await familiesDAO.deleteFamilyById(family._id,null);
-                const loansDeleted = await loansDAO.deleteLoanByIdFamily(family._id,null);
+                const loansDeleted = await loansDAO.getLoansByFamilyId(idFamily);
+                await loansDAO.deleteLoanByIdFamily(idFamily,null);
+                for( let loan of loansDeleted){
+                    const images = loan.images;
+                    for( let image of images){
+                        await s3.deleteObject({
+                                Bucket: process.env.S3_BUCKET,
+                                Key: image.key
+                        }).promise()
+                    }
+                }
                 deletedFamilies = [ ...deletedFamilies, deletedFamily.name];
                 continue;
             }

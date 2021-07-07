@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 const loansModel = require('./loans.model');
+const aws = require('aws-sdk');
+const s3 = new aws.S3();
 
 loansModel.statics.getAllLoans = async function(){
     const allLoans = await this.find().exec();
@@ -20,6 +22,10 @@ loansModel.statics.getLoanByIdPopulate = async function(_id){
                                 .populate('sub_balance._id','-_id username')
                                 .exec();
     return loan;
+}
+loansModel.statics.getLoansByFamilyId = async function(_idfamily){
+    const loans = await this.find({family: _idfamily}).exec();
+    return loans;
 }
 loansModel.statics.getLoansByFamilyPopulate = async function(_idfamily){
     const loan = await this.find({family:_idfamily})
