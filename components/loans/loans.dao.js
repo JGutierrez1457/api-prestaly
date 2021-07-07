@@ -27,6 +27,10 @@ loansModel.statics.getLoansByFamilyId = async function(_idfamily){
     const loans = await this.find({family: _idfamily}).exec();
     return loans;
 }
+loansModel.statics.getLoansNoBalancedByFamilyId = async function(_idfamily){
+    const loans = await this.find({ family : _idfamily}).exists('balance',false).sort('date').exec();
+    return loans;
+}
 loansModel.statics.getLoansByFamilyPopulate = async function(_idfamily){
     const loan = await this.find({family:_idfamily})
                                 .populate('family','-_id name')
@@ -47,6 +51,10 @@ loansModel.statics.createLoan = async function( query ){
 loansModel.statics.updateLoanById = async function(_id, query, options){
     const updatedLoan = await this.findByIdAndUpdate(_id, query, options).exec();
     return updatedLoan;
+}
+loansModel.statics.updateLoansNoBalancedBYFamilyId = async function(_idfamily, query, options){
+    const updatedLoans = await this.updateMany({ family: _idfamily}, query, options).exists('balance',false).exec();
+    return updatedLoans;
 }
 loansModel.statics.deleteLoanById = async function(_id){
     const deletedLoan = await this.findByIdAndDelete(_id).exec();

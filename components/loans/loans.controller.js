@@ -63,11 +63,12 @@ loansController.getLoansFamily = async(req, res)=>{
             const creator = loan.creator.username;
             const quantity = loan.quantity;
             const images = loan.images;
+            const balance = loan.balance;
             const spenders = loan.spenders.map( s => ({username: s._id.username, expense: s.expense}));
             const own_products = loan.own_products.map( o => ({username: o._id.username, products: o.products}));
             const exclude_products = loan.exclude_products.map( e => ({username: e._id.username, products: e.products}));
             const sub_balance = loan.sub_balance.map( s =>({username: s._id.username, amount: s.amount}))
-            return ({ _id:loan._id, date, store, family, creator, images,quantity, spenders, beneficiaries, own_products, exclude_products, sub_balance});
+            return ({ _id:loan._id, date, store, family, creator, images,quantity, spenders, beneficiaries, own_products, exclude_products, sub_balance, balance});
         })
         return res.status(200).json(loansFormated);
     } catch (error) {
