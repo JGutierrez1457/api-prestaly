@@ -19,7 +19,7 @@ module.exports = function(spenders, beneficiaries, quantity, sub_balanceInitial,
             if(hasOwnProducts){
                 const products =own_products.find( own_product => own_product.username === involved._id ).products;
                 const pricesProducts = products.map( p =>p.price-p.discount);
-                amount -= pricesProducts.reduce((acc, prices)=>acc+prices,0 );
+                amount -= pricesProducts.reduce((acc, prices)=>acc+prices,0 ) * ( 1 - 1 / totalBeneficiaries);
             }
             
             const hasNonOwnProducts = own_products.some( own_product => own_product.username !== involved._id);

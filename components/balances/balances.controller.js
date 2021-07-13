@@ -2,7 +2,7 @@ const balancesController = {}
 const familiesDAO = require('../families/families.dao');
 const loansDAO = require('../loans/loans.dao');
 const balancesDAO = require('../balances/balances.dao');
-
+const generatePDF = require('../../utils/pdf/generatePDF');
 
 balancesController.getBalances = async (req, res)=>{
 
@@ -19,6 +19,7 @@ balancesController.generateBalance = async (req, res)=>{
         if(!isAdmin) return res.status(400).json({message:"You aren't admin"});
 
         const loansNoBalanced = await loansDAO.getLoansNoBalancedByFamilyId(idfamily);
+        if( loansNoBalanced.length === 0) return res.status(404).json({ message:"Don't exist loans unbalanced"})
         const subBalanceNoBalanced = loansNoBalanced.map( loans => loans.sub_balance);
 
         const allMembers =[ ...existFamily.members ];
@@ -31,10 +32,14 @@ balancesController.generateBalance = async (req, res)=>{
                 {_id: balanceByMember._id, amount: totalAmount }
             )
         })
-        const newBalance = await balancesDAO.createBalance({family: idfamily, creator: userId ,balance:final_balance});
-        const updatedLoans = await loansDAO.updateLoansNoBalancedBYFamilyId(idfamily,{ balance: newBalance._id }, {new :true});
+        const loansNoBalancedPopulated = await loansDAO.getLoansNoBalancedByFamilyIdPopulate(idfamily);
+        
+        const content = await generatePDF(loansNoBalancedPopulated);
 
-        return res.status(200).send('Balance create')
+       /*  const newBalance = await balancesDAO.createBalance({family: idfamily, creator: userId ,balance:final_balance});
+        const updatedLoans = await loansDAO.updateLoansNoBalancedBYFamilyId(idfamily,{ balance: newBalance._id }, {new :true});
+*/
+        return res.status(200).json(content)
     } catch (error) {
         return res.status(500).send(error.message)
     }

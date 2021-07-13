@@ -31,6 +31,18 @@ loansModel.statics.getLoansNoBalancedByFamilyId = async function(_idfamily){
     const loans = await this.find({ family : _idfamily}).exists('balance',false).sort('date').exec();
     return loans;
 }
+loansModel.statics.getLoansNoBalancedByFamilyIdPopulate = async function(_idfamily){
+    const loans = await this.find({ family : _idfamily}).exists('balance',false).sort('date').select('-_id -createdAt -updatedAt -__v')
+                                .populate('family','-_id name')
+                                .populate('creator','-_id username')
+                                .populate('spenders._id','-_id username')
+                                .populate('beneficiaries','-_id username')
+                                .populate('own_products._id','-_id username')
+                                .populate('exclude_products._id','-_id username')
+                                .populate('sub_balance._id','-_id username')
+                                .exec();
+    return loans;
+}
 loansModel.statics.getLoansByFamilyPopulate = async function(_idfamily){
     const loan = await this.find({family:_idfamily})
                                 .populate('family','-_id name')
