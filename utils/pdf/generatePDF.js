@@ -3,8 +3,27 @@ const printer = new PdfPrinter(require('./fonts.js'));
 const fs = require('fs');
 const dateFormat = require('dateformat');
 const base64Img = require('base64-img');
-module.exports = async function (balance){
+module.exports = async function (balance, members, final_balance){
+        const totalMembers = members.members.length;
+        const membersUsername = members.members.map( m => m.username);
         var content = [];
+        var table = {
+            table : {
+               headerRows : 2,
+               widths: [ '*' ],
+               body : [
+                   [{ text : 'Fecha ', rowSpan : 2, alignment: 'center', style :'tableheader'}],
+                   ['']
+               ]
+            },
+        }
+        membersUsername.forEach((member, index)=>{
+            if(index === 0)table.table.body[0].push({ text : 'Miembros de familia', colSpan : totalMembers, alignment : 'center', style :'tableheader'});
+            if(index !== 0)table.table.body[0].push({});
+            table.table.body[1].push({ text: member, alignment: 'center', style :'tableheader'})
+            table.table.widths.push('*')
+        })
+
         var dateFirstLoan = new Date(balance[0].date);
         var dateLastLoan = new Date(balance[ balance.length - 1 ].date);
         dateFirstLoan.setDate( dateFirstLoan.getDate() + 1);
@@ -25,6 +44,7 @@ module.exports = async function (balance){
                 style : 'subheader'
             }
             content.push(subtitle);
+            table.table.body.push([{ text:dateFormat(date, "dd/mm/yyyy"), alignment: 'center' }])
             const creator = {
                 text : `Creado por ${loan.creator.username} \n`,
                 style : ['quote', 'small']
@@ -129,8 +149,20 @@ module.exports = async function (balance){
                 margin : [15, 0, 0, 0]
             }
             content.push(sub_balance);
+            membersUsername.forEach((member, index)=>{
+                const memberInSub_Balance = loan.sub_balance.filter(sub => sub._id.username === member);
+                const textInsert = (memberInSub_Balance.length !== 0)?memberInSub_Balance[0].amount : 0;
+                table.table.body[table.table.body.length - 1].push({ text : textInsert, alignment: 'center'})
+            })
             content.push('\n')
         }
+        table.table.body.push([{ text : 'Total', style: 'tableheader', alignment: 'center'}]);
+        membersUsername.forEach((member, index)=>{
+            const textInsert = final_balance.balance.filter( mSub => mSub._id.username === member )[0].amount;
+            table.table.body[ table.table.body.length - 1].push({ text : textInsert, alignment: 'center', style : 'tableheader'});
+        })
+
+        content.push(table);
     const docDefinition = {
         content ,
         styles: {
@@ -141,6 +173,10 @@ module.exports = async function (balance){
             subheader:{
                 fontSize: 15,
                 bold :true
+            },
+            tableheader:{
+                fontSize: 13,
+                bold : true
             },
             quote: {
                 italics: true
@@ -156,4 +192,5 @@ module.exports = async function (balance){
     const pdfDoc = printer.createPdfKitDocument(docDefinition)
     pdfDoc.pipe(fs.createWriteStream('test.pdf'));
     pdfDoc.end();
+    return(table)
 }

@@ -6,8 +6,16 @@ balancesModel.statics.createBalance = async function(query){
     const newBalance = await instBalance.save();
     return newBalance;
 }
-balancesModel.statics.getBalancesByFamilyId = async function(idfamily){
-    const balances = await this.find({family: idfamily}).exec();
+balancesModel.statics.getBalancesByFamilyIdPopulate = async function(idfamily){
+    const balances = await this.find({family: idfamily}).select('-_id -createdAt -updatedAt -__v')
+                                .populate('balance._id','-_id -email -password -families -createdAt -updatedAt -__v')
+                                .exec();
+    return balances;
+}
+balancesModel.statics.getBalancesByIdPopulate = async function(_id){
+    const balances = await this.find(_id).select('-_id -createdAt -updatedAt -__v')
+                                .populate('balance._id','-_id -email -password -families -createdAt -updatedAt -__v')
+                                .exec();
     return balances;
 }
 
