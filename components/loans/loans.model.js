@@ -41,7 +41,6 @@ const loansModel = new Schema({
     ],
     images:[
         { 
-            _id: false,
             key : { type:String, required:false, unique:false, trim:true},
             name : { type:String, required:false, unique:false, trim:true},
             url: { type:String, required:false, unique:false, trim:true },

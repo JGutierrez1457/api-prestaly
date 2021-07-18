@@ -7,6 +7,12 @@ const balancesModel = new Schema({
             _id:{type: Schema.Types.ObjectId, ref : 'User'},
             amount:{type:Number, required:false, unique:false, trim:true}
         }
-    ]
-})
+    ],
+    file : {
+        key : { type:String, required:false, unique:false, trim:true},
+        name : { type:String, required:false, unique:false, trim:true},
+        url: { type:String, required:false, unique:false, trim:true },
+        size : { type:Number, required:false, unique:false, trim:true }
+    }
+},{ timestamps: true})
 module.exports = balancesModel;

@@ -1,12 +1,15 @@
 const PdfPrinter = require('pdfmake');
 const printer = new PdfPrinter(require('./fonts.js'));
 const fs = require('fs');
+const { v4 : uuidv4 } = require('uuid');
 const dateFormat = require('dateformat');
 const base64Img = require('base64-img');
 module.exports = async function (balance, members, final_balance){
         const totalMembers = members.members.length;
         const membersUsername = members.members.map( m => m.username);
         var content = [];
+        var nLoan = 0;
+        const loanImages = {};
         var table = {
             table : {
                headerRows : 2,
@@ -103,25 +106,13 @@ module.exports = async function (balance, members, final_balance){
                     column1
                 ]
             }
-            
+            const column2 = {
+                stack : [
+                ]
+            }
+            columns.columns.push(column2)
             if( loan?.images?.length !== 0){
-                const column2 = {
-                    stack : [
-                    ]
-                }
-                for( image of loan.images){
-                    var imageBase64 = await new Promise(function(resolve, reject){
-                        base64Img.requestBase64(image.url, function (err, res , body){
-                            if(err)reject(err)
-                            resolve(body)
-                        })
-                    })
-                    column2.stack.push({
-                        image : imageBase64,
-                        fit : [100,100]
-                    },'\n')
-                }
-                columns.columns.push(column2)
+                loanImages[nLoan] = loan.images.map( image => image.url);
             }
             content.push(columns);
             const sub_balance_title = {
@@ -155,14 +146,41 @@ module.exports = async function (balance, members, final_balance){
                 table.table.body[table.table.body.length - 1].push({ text : textInsert, alignment: 'center'})
             })
             content.push('\n')
+            nLoan++;
         }
         table.table.body.push([{ text : 'Total', style: 'tableheader', alignment: 'center'}]);
         membersUsername.forEach((member, index)=>{
             const textInsert = final_balance.balance.filter( mSub => mSub._id.username === member )[0].amount;
             table.table.body[ table.table.body.length - 1].push({ text : textInsert, alignment: 'center', style : 'tableheader'});
         })
-
+        
         content.push(table);
+        var indexsColumns = []
+        content.forEach( (el, index) =>{
+            if(el.columns)indexsColumns.push(index)
+        });
+        const promiseImageToBase64 = function(nLoan, url){
+            return new Promise(function(resolve, reject){
+            base64Img.requestBase64(url, function (err, res , body){
+                if(err)reject(err)
+                if(body)resolve({ [nLoan] : body})
+            })
+        })}
+        var promiseArray = [];
+        for( let [key, value] of Object.entries(loanImages)){
+            for ( let url of value){
+                promiseArray.push(promiseImageToBase64(key, url))
+            }
+        }
+        const imageBase64ByLoan = await Promise.all(promiseArray)
+        for( let imageBase64 of imageBase64ByLoan){
+            const result = Object.entries(imageBase64).map(([key, value])=>[Number(key), value]);
+            content[indexsColumns[result[0][0]]].columns[1].stack.push(
+                {
+                   image : result[0][1],
+                   fit : [ 100, 100]
+                }, '\n');
+}
     const docDefinition = {
         content ,
         styles: {
@@ -189,8 +207,21 @@ module.exports = async function (balance, members, final_balance){
             font : 'Poppins'
         }
     }
-    const pdfDoc = printer.createPdfKitDocument(docDefinition)
-    pdfDoc.pipe(fs.createWriteStream('test.pdf'));
-    pdfDoc.end();
-    return(table)
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+    const hash = uuidv4();
+    const filename = `files/balanced/${hash}-balance.pdf`;
+    const promiseCreatePDF = new Promise((resolve, reject)=>{
+        const stream = fs.createWriteStream(filename);
+        pdfDoc.pipe(stream);
+        pdfDoc.end();
+        stream.on('finish',()=>resolve(`${hash}-balance.pdf`));
+        stream.on('error',(err)=>reject(err));
+    })
+    var responsePromise;
+    try {
+        responsePromise = await promiseCreatePDF;
+    } catch (error) {
+        console.error(error)
+    }
+    return responsePromise;
 }

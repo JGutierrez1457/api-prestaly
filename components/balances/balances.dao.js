@@ -13,10 +13,14 @@ balancesModel.statics.getBalancesByFamilyIdPopulate = async function(idfamily){
     return balances;
 }
 balancesModel.statics.getBalancesByIdPopulate = async function(_id){
-    const balances = await this.find(_id).select('-_id -createdAt -updatedAt -__v')
+    const balances = await this.findById(_id).select('-_id -createdAt -updatedAt -__v')
                                 .populate('balance._id','-_id -email -password -families -createdAt -updatedAt -__v')
                                 .exec();
     return balances;
+}
+balancesModel.statics.editBalanceById = async function(_id, query, options){
+    const editedBalance = await this.findByIdAndUpdate(_id, query, options).exec();
+    return editedBalance;
 }
 
 

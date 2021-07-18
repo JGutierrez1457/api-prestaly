@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 const loansModel = require('./loans.model');
 const aws = require('aws-sdk');
-const s3 = new aws.S3();
 
 loansModel.statics.getAllLoans = async function(){
     const allLoans = await this.find().exec();

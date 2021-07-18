@@ -3,6 +3,10 @@ const familiesDAO = require('../families/families.dao');
 const loansDAO = require('../loans/loans.dao');
 const balancesDAO = require('../balances/balances.dao');
 const generatePDF = require('../../utils/pdf/generatePDF');
+const fs = require('fs');
+const path = require('path');
+const aws = require('aws-sdk');
+const s3  = new aws.S3();
 
 balancesController.getBalances = async (req, res)=>{
     const userId = req.userId;
@@ -54,59 +58,39 @@ balancesController.generateBalance = async (req, res)=>{
 
 
         
-        /*  const newBalance = await balancesDAO.createBalance({family: idfamily, creator: userId ,balance:final_balance});
+        const newBalance = await balancesDAO.createBalance({family: idfamily, creator: userId ,balance:final_balance});
         const updatedLoans = await loansDAO.updateLoansNoBalancedBYFamilyId(idfamily,{ balance: newBalance._id }, {new :true});
-        const finaBalancePopulate = await balancesDAO.getBalancesByIdPopulate({_id:newBalance._id });
-        */
-        const tempFinal_Balance =  {
-            "family": "60df5b5077d9934f448d5e6c",
-            "creator": "60df5b2977d9934f448d5e6a",
-            "balance": [
-                {
-                    "_id": {
-                        "username": "JG",
-                        "first_name": "Jorge",
-                        "last_name": "Gutierrez"
-                    },
-                    "amount": 85.12
-                },
-                {
-                    "_id": {
-                        "username": "PG",
-                        "first_name": "Paolo",
-                        "last_name": "Gutierrez"
-                    },
-                    "amount": -92.56
-                },
-                {
-                    "_id": {
-                        "username": "WG",
-                        "first_name": "Wilman",
-                        "last_name": "Gutierrez"
-                    },
-                    "amount": 0
-                },
-                {
-                    "_id": {
-                        "username": "JCH",
-                        "first_name": "Juan",
-                        "last_name": "Chochoca"
-                    },
-                    "amount": 0
-                },
-                {
-                    "_id": {
-                        "username": "PCH",
-                        "first_name": "Paola",
-                        "last_name": "Chochoca"
-                    },
-                    "amount": 0
-                }
-            ]
-        }
+        
+        const finalBalancePopulate = await balancesDAO.getBalancesByIdPopulate({_id:newBalance._id });
 
-        const content = await generatePDF(loansNoBalancedPopulated, memberUsernameFamily, tempFinal_Balance);
-        return res.status(200).json(content)
+        const filename = await generatePDF(loansNoBalancedPopulated, memberUsernameFamily, finalBalancePopulate);
+        /*      const readFile = util.promisify(fs.readFile);
+        const fileContent = await readFile(path.join(process.cwd(),`files/balanced/${filename}`)); */
+        const pathFile = path.join(process.cwd(),`files/balanced/${filename}`);
+        const fileStats = await new Promise((resolve, reject)=>{
+            fs.stat(pathFile, (err, fileStats)=>{
+                if(err)reject(err)
+                resolve(fileStats)
+            });
+        })
+        const fileContent =fs.createReadStream(pathFile);
+        await s3.putObject({
+            Bucket : process.env.S3_BUCKET,
+            Key : `balances/${filename}`,
+            Body : fileContent,
+            ContentType : 'application/pdf',
+            ContentDisposition :'inline',
+            ACL : 'public-read'
+        }).promise();
+        fs.unlinkSync(pathFile);
+        const addPdfBalance = await balancesDAO.editBalanceById({_id: newBalance._id}, { file : {
+            key : filename,
+            name : filename,
+            size : fileStats.size,
+            url : `https://${process.env.S3_BUCKET}.s3.${process.env.S3_REGION}.amazonaws.com/balances/${filename}`
+        }})
+        const finalBalancePopulate2 = await balancesDAO.getBalancesByIdPopulate({_id:newBalance._id });
+        return res.status(200).json({message :'Balance generated', result : finalBalancePopulate2 })
     } catch (error) {
         return res.status(500).send(error.message)
     }
