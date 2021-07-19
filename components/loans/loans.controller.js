@@ -3,7 +3,10 @@ const loansDAO = require('./loans.dao');
 const familiesDAO = require('../families/families.dao');
 const usersDAO = require('../users/users.dao');
 const getSubBalance = require('../../utils/getSubBalance');
+const generatePDF = require('../../utils/pdf/generatePDF');
 const aws = require('aws-sdk');
+const path = require('path');
+const fs = require('fs');
 const s3 = new aws.S3();
 
 
@@ -13,6 +16,73 @@ loansController.getLoans = async(req, res)=>{
         return res.status(200).json(loans);
     } catch (error) {
         res.status(500).send(error.message)
+    }
+}
+loansController.getNoBalancedLoans = async (req, res)=>{
+    const userId = req.userId;
+    const { idfamily } = req.params;
+
+    try {
+        const existFamily = await familiesDAO.getFamilyByIdPopulateMembers(idfamily);
+        if(!existFamily)return res.status(404).json({message:"Family don't exist"});
+        
+        const userIsMember = existFamily.members.some(member => member._id.toString() === userId);
+        if(!userIsMember) return res.status(400).json({message:"User is not member"});
+
+        const loansNoBalancedPopulated = await loansDAO.getLoansNoBalancedByFamilyIdPopulate(idfamily);
+
+
+        return res.status(200).json(loansNoBalancedPopulated)
+    } catch (error) {
+        return res.status(500).send(error.message)
+    }
+}
+loansController.getNoBalancedLoansPDF = async (req, res)=>{
+    const userId = req.userId;
+    const { idfamily } = req.params;
+
+    try {
+        const existFamily = await familiesDAO.getFamilyByIdPopulateMembers(idfamily);
+        if(!existFamily)return res.status(404).json({message:"Family don't exist"});
+        
+        const userIsMember = existFamily.members.some(member => member._id.toString() === userId);
+        if(!userIsMember) return res.status(400).json({message:"User is not member"});
+
+        const loansNoBalanced = await loansDAO.getLoansNoBalancedByFamilyId(idfamily);
+        if( loansNoBalanced.length === 0) return res.status(404).json({ message:"Don't exist loans unbalanced"})
+        const subBalanceNoBalanced = loansNoBalanced.map( loans => loans.sub_balance);
+
+        const loansNoBalancedPopulated = await loansDAO.getLoansNoBalancedByFamilyIdPopulate(idfamily);
+        const memberUsernameFamily = await familiesDAO.getFamilyByIdPopulateMembers(idfamily);
+
+        const allMembers =[ ...existFamily.members ];
+        const final_balance = allMembers.map( balanceByMember => {
+            const balanceMemberCoincidence = subBalanceNoBalanced.filter( sub => sub.some( member => member._id.toString() === balanceByMember._id.toString()));
+            const extractBalance = balanceMemberCoincidence.map( item =>item.filter( b => b._id.toString() === balanceByMember._id.toString()) )
+                                        .map( e => e[0].amount);
+            const totalAmount = Math.round(extractBalance.reduce((acc, amount)=>acc + amount,0 ) * 100 ) / 100;
+            return (
+                {_id: { username : balanceByMember.username }, amount: totalAmount }
+            )
+        })
+
+        const filename = await generatePDF(loansNoBalancedPopulated, memberUsernameFamily, { balance : final_balance} );
+
+        const pathFile = path.join(process.cwd(),`files/balanced/${filename}`);
+        const fileStats = await new Promise((resolve, reject)=>{
+            fs.stat(pathFile, (err, fileStats)=>{
+                if(err)reject(err)
+                resolve(fileStats)
+            });
+        })
+        const fileContent =fs.createReadStream(pathFile);
+        res.setHeader('Content-Length', fileStats.size);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename=pre-balance.pdf');
+        fileContent.pipe(res);
+        fs.unlinkSync(pathFile);
+    } catch (error) {
+        return res.status(500).send(error.message)
     }
 }
 loansController.getLoan = async(req, res)=>{
