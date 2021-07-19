@@ -109,7 +109,7 @@ loansController.getLoan = async(req, res)=>{
         const own_products = loan.own_products.map( o => ({username: o._id.username, products: o.products}));
         const exclude_products = loan.exclude_products.map( e => ({username: e._id.username, products: e.products}));
         const sub_balance = loan.sub_balance.map( s =>({username: s._id.username, amount: s.amount}))
-        return res.status(200).json({ date, store, family, creator, quantity, spenders, beneficiaries, own_products, exclude_products, sub_balance});
+        return res.status(200).json({ date, subject, family, creator, quantity, spenders, beneficiaries, own_products, exclude_products, sub_balance});
     } catch (error) {
         return res.status(500).send(error.message)
     }
@@ -173,10 +173,7 @@ loansController.addLoan = async(req, res)=>{
         const totalBeneficiaries = beneficiaries.length;
         const existOwnProducts = own_products.length !== 0;
         const existExcludeProducts = exclude_products.length !== 0;
-        const totalNonOwnProducts = own_products.map( p => p.products.map( item => item.price-item.discount))
-        .map( p => p.reduce((acc,price)=>acc+price,0))
-        .reduce((acc, price)=>acc+price,0);
-        const final_sub_balance = getSubBalance(spenders, beneficiaries, quantity, sub_balance, own_products, exclude_products, existOwnProducts, existExcludeProducts, totalNonOwnProducts, totalBeneficiaries);
+        const final_sub_balance = getSubBalance(spenders, beneficiaries, quantity, sub_balance, own_products, exclude_products, existOwnProducts, existExcludeProducts, totalBeneficiaries);
         const spendersWithId = await Promise.all( spenders.map( async spender =>({_id: await usersDAO.getUserIdByUsername(spender.username), expense: spender.expense }) ))
         const beneficiariesWithId = await Promise.all( beneficiaries.map( async beneficiary =>await usersDAO.getUserIdByUsername(beneficiary)  ));
         const own_productsWithId = await Promise.all( own_products.map( async own_product =>({_id:await usersDAO.getUserIdByUsername(own_product.username),  products: own_product.products }) ));
@@ -205,7 +202,7 @@ loansController.addLoan = async(req, res)=>{
 loansController.updateLoan = async(req, res)=>{
     const userId = req.userId;
     const { idfamily, idloans } = req.params; 
-    const { date, store, quantity, spenders, beneficiaries, own_products, exclude_products  } = req.body;
+    const { date, subject, quantity, spenders, beneficiaries, own_products, exclude_products  } = req.body;
     try {
         const existFamily = await familiesDAO.getFamilyByIdPopulateMembers(idfamily);
         if(!existFamily)return res.status(404).json({message:"Family don't exist"});
@@ -233,10 +230,7 @@ loansController.updateLoan = async(req, res)=>{
         const totalBeneficiaries = beneficiaries.length;
         const existOwnProducts = own_products.length !== 0;
         const existExcludeProducts = exclude_products.length !== 0;
-        const totalNonOwnProducts = own_products.map( p => p.products.map( item => item.price-item.discount))
-        .map( p => p.reduce((acc,price)=>acc+price,0))
-        .reduce((acc, price)=>acc+price,0);
-        const final_sub_balance = getSubBalance(spenders, beneficiaries, quantity, sub_balance,  own_products, exclude_products, existOwnProducts, existExcludeProducts, totalNonOwnProducts, totalBeneficiaries);
+        const final_sub_balance = getSubBalance(spenders, beneficiaries, quantity, sub_balance,  own_products, exclude_products, existOwnProducts, existExcludeProducts, totalBeneficiaries);
         const spendersWithId = await Promise.all( spenders.map( async spender =>({_id: await usersDAO.getUserIdByUsername(spender.username), expense: spender.expense }) ))
         const beneficiariesWithId = await Promise.all( beneficiaries.map( async beneficiary =>await usersDAO.getUserIdByUsername(beneficiary)  ));
         const own_productsWithId = await Promise.all( own_products.map( async own_product =>({_id:await usersDAO.getUserIdByUsername(own_product.username),  products: own_product.products }) ));
@@ -244,7 +238,7 @@ loansController.updateLoan = async(req, res)=>{
         const final_sub_balanceWithId = await Promise.all( final_sub_balance.map( async balance =>({_id: await usersDAO.getUserIdByUsername(balance._id), amount: balance.amount }) ))
         const query = {
             date,
-            store,
+            subject,
             quantity,
             spenders: spendersWithId,
             beneficiaries: beneficiariesWithId,
