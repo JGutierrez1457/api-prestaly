@@ -16,7 +16,7 @@ router.post('/:idloans/families/:idfamily/image',auth,multer(multerConfig).singl
 router.patch('/:idloans/families/:idfamily',auth, loansController.updateLoan);
 
 router.delete('/:idloans/families/:idfamily',auth, loansController.deleteLoan);
-router.delete('/:idloans/families/:idfamily/image/:key', auth, loansController.deleteImage);
+router.delete('/:idloans/families/:idfamily/image/:idimage', auth, loansController.deleteImage);
 
 
 module.exports = router;

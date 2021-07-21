@@ -13,18 +13,24 @@ module.exports = async function (balance, members, final_balance){
         var table = {
             table : {
                headerRows : 2,
-               widths: [ '*' ],
+               widths: [ 'auto','auto' ],
                body : [
-                   [{ text : 'Fecha ', rowSpan : 2, alignment: 'center', style :'tableheader'}],
-                   ['']
+                   [{ text : 'Fecha ', rowSpan : 2, alignment: 'center', style :'tableheader'},{ text : 'Asunto ', rowSpan : 2, alignment: 'center', style :'tableheader'}],
+                   ['','']
                ]
             },
+               layout: {
+				fillColor: function (rowIndex, node, columnIndex) {
+                    if(rowIndex === 0)return'#CCCCCC';
+					return ((rowIndex + 1) % 2 === 0 ) ? '#CCCCCC' : null;
+				}
+			}
         }
         membersUsername.forEach((member, index)=>{
             if(index === 0)table.table.body[0].push({ text : 'Miembros de familia', colSpan : totalMembers, alignment : 'center', style :'tableheader'});
             if(index !== 0)table.table.body[0].push({});
             table.table.body[1].push({ text: member, alignment: 'center', style :'tableheader'})
-            table.table.widths.push('*')
+            table.table.widths.push('auto')
         })
 
         var dateFirstLoan = new Date(balance[0].date);
@@ -47,7 +53,7 @@ module.exports = async function (balance, members, final_balance){
                 style : 'subheader'
             }
             content.push(subtitle);
-            table.table.body.push([{ text:dateFormat(date, "dd/mm/yyyy"), alignment: 'center' }])
+            table.table.body.push([{ text:dateFormat(date, "dd/mm/yyyy"), alignment: 'center' },{ text: loan.subject, alignment: 'center' , noWrap : false}]);
             const creator = {
                 text : `Creado por ${loan.creator.username} \n`,
                 style : ['quote', 'small']
@@ -148,7 +154,7 @@ module.exports = async function (balance, members, final_balance){
             content.push('\n')
             nLoan++;
         }
-        table.table.body.push([{ text : 'Total', style: 'tableheader', alignment: 'center'}]);
+        table.table.body.push([{ text : 'Total',colSpan : 2, style: 'tableheader', alignment: 'center'},'']);
         membersUsername.forEach((member, index)=>{
             const textInsert = final_balance.balance.filter( mSub => mSub._id.username === member )[0].amount;
             table.table.body[ table.table.body.length - 1].push({ text : textInsert, alignment: 'center', style : 'tableheader'});

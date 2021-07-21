@@ -44,6 +44,7 @@ loansModel.statics.getLoansNoBalancedByFamilyIdPopulate = async function(_idfami
 }
 loansModel.statics.getLoansByFamilyPopulate = async function(_idfamily){
     const loan = await this.find({family:_idfamily})
+                                .sort('date')
                                 .populate('family','-_id name')
                                 .populate('creator','-_id username')
                                 .populate('spenders._id','-_id username')

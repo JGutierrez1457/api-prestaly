@@ -283,7 +283,7 @@ loansController.putImages = async(req, res)=>{
 }
 loansController.deleteImage = async(req, res)=>{
     const userId = req.userId;
-    const { idfamily, idloans, key } = req.params; 
+    const { idfamily, idloans, idimage } = req.params; 
     try {
         const existFamily = await familiesDAO.getFamilyByIdPopulateMembers(idfamily);
         if(!existFamily)return res.status(404).json({message:"Family don't exist"});
@@ -295,11 +295,17 @@ loansController.deleteImage = async(req, res)=>{
         if(!existLoan){
             return res.status(404).json({message:"Loan don't exist"})
         };
+        const existImage = existLoan.images.some( image => image._id.toString() === idimage);
+        if(!existImage) return res.status(400).json({message:"Image don't exist"});
+
+        const image = existLoan.images.find( image => image._id.toString() === idimage);
+        const key = image.key;
+        const nameImage = image.name;
 
         await s3.deleteObject({Bucket: process.env.S3_BUCKET, Key: key }).promise();
-        const updatedLoan = await loansDAO.updateLoanById(idloans, { $pull: { images : { key }}}, { new: true});
+        const updatedLoan = await loansDAO.updateLoanById(idloans, { $pull: { images : { _id : idimage }}}, { new: true});
 
-        return res.status(200).send(`Image ${key} deleted`)
+        return res.status(200).send(`Image ${nameImage} deleted`)
     } catch (error) {
         return res.status(500).send(error.message)
     }
