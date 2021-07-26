@@ -6,47 +6,24 @@ const loansDAO = require('../loans/loans.dao');
 const aws = require('aws-sdk');
 const s3 = new aws.S3();
 
-familiesController.getFamilies = async ( req, res)=>{
-    try {
-        const families = await familiesDAO.getFamilies();
-        return res.status(200).json(families)
-
-    } catch (error) {
-        return res.status(500).send(error.message)
-    }
-}
-familiesController.getFamily = async (req, res)=>{
-    const { idfamily } = req.params;
+familiesController.getMyFamilies = async (req, res)=>{
     const userId = req.userId;
     try {
-        const existFamily = await familiesDAO.getFamilyByIdPopulateAdminCreator(idfamily);
-        if(!existFamily)return res.status(404).json({message:"Family don't exist"});
 
-        const userIsMember = existFamily.members.some(memberId => memberId.toString() === userId);
-        if(!userIsMember) return res.status(400).json({message:"User is not member"});
+        const existUser = await userDAO.getUserById(userId);
+        if(!existUser)return res.status(404).send("User don't exist");
 
-        return res.status(200).json({name: existFamily.name, admins: existFamily.admins, creator: existFamily.creator});
-
-    } catch (error) {
-        return res.status(500).send(error.message)
-    }
-}
-familiesController.getMembersFamily = async (req, res)=>{
-    const { idfamily } = req.params;
-    const userId = req.userId;
-    try {
-        const existFamily = await familiesDAO.getFamilyByIdPopulateMembers(idfamily);
-        if(!existFamily)return res.status(404).json({message:"Family don't exist"});
-
-        const userIsMember = existFamily.members.some(memberId => memberId._id.toString() === userId);
-        if(!userIsMember) return res.status(400).json({message:"User is not member"});
-
-        return res.status(200).json(existFamily.members);
+        var promiseFamilies = [];
+        for( family of existUser.families){
+            promiseFamilies.push(familiesDAO.getFamilyByIdPopulateMembers(family._id));
+        } 
+        return res.status(200).json(await Promise.all(promiseFamilies));
 
     } catch (error) {
         return res.status(500).send(error.message)
     }
 }
+
 familiesController.createFamily = async ( req, res)=>{
     const { name, password, confirmPassword } = req.body;
     const userId = req.userId;
@@ -70,15 +47,18 @@ familiesController.addMemberFamily = async (req, res)=>{
     try {
 
         const existFamily = await familiesDAO.getFamilyById(idfamily);
-        if(!existFamily)return res.status(404).json({message:"Family don't exist"});
+        if(!existFamily)return res.status(404).send("Family don't exist");
         const isAdmin = existFamily.admins.some(memberId =>memberId.toString() === userId);
-        if(!isAdmin) return res.status(400).json({message:"You aren't admin"});
+        if(!isAdmin) return res.status(400).send("No eres administrador");
         const existUsername = await userDAO.getUserByCondition({username});
-        if(!existUsername) return res.status(404).json({message:`User ${username} don´t exist`});
+        if(!existUsername) return res.status(404).send(`Usuario ${username} no existe`);
+
+        const isMember = await existFamily.members.some( member => member.toString() === existUsername._id );
+        if(isMember) return res.status(400).send(`Usuario ${username} ya es miembro`);
 
         const familyUpdate = await familiesDAO.updateFamilyById(idfamily,{$addToSet:{members: existUsername._id}}, { new: true});
         await userDAO.editUserById(existUsername._id,{$addToSet:{ families: {_id:familyUpdate._id, name: familyUpdate.name}}},{ new: true});
-        return res.status(200).json(familyUpdate);
+        return res.status(200).json({members : familyUpdate.members,family: familyUpdate._id, message : username+' agregado'});
     } catch (error) {
         return res.status(500).send(error.message)
     }
@@ -97,8 +77,8 @@ familiesController.deleteMemberFamily = async (req, res)=>{
         const isHe = existUsername._id.toString() === userId;
         const userIsCreator = existFamily.creator.toString() === existUsername._id.toString();
         const userIsAdmin = existFamily.admins.some(memberId =>memberId.toString() === existUsername._id.toString());
-        if( !agentIsAdmin && !isHe )return res.status(400).json({message:"No authorizate"});
-        if( userIsCreator && !isHe )return res.status(400).json({message:"Cannot delete the creator"});
+        if( !agentIsAdmin && !isHe )return res.status(400).send("No eres administrador");
+        if( userIsCreator && !isHe )return res.status(400).send("No puede eliminar al creador");
         var updatedFamily = await familiesDAO
                                 .updateFamilyById(idfamily, { $pull: { members : existUsername._id }}, {new :true});
         const updatedUser = await userDAO.editUserById(existUsername._id,{ $pull: { families : { _id : idfamily }}}, {new : true} );
@@ -115,7 +95,7 @@ familiesController.deleteMemberFamily = async (req, res)=>{
                     }).promise()
                 }
             }
-            return res.status(200).json({message: `Family ${deletedFamily.name} deleted because has no members`})
+            return res.status(200).send(`Familia ${deletedFamily.name} eliminada por no tener miembros`);
         }
         if(userIsAdmin){
             updatedFamily = await familiesDAO
@@ -126,15 +106,15 @@ familiesController.deleteMemberFamily = async (req, res)=>{
                 const newCreator = await userDAO.getUserById(updatedFamily.admins[0]);
                 updatedFamily = await familiesDAO
                                 .updateFamilyById(idfamily, { creator: updatedFamily.admins[0] }, {new :true});
-                return res.status(200).json({message: `User ${updatedUser.username} deleted from ${updatedFamily.name} and now ${newCreator.username} is creator`})
+                return res.status(200).json({members : updatedFamily.members, creator : updatedFamily.creator, family: updatedFamily._id , message: `Usuario ${updatedUser.username} eliminado y ahora ${newCreator.username} es creador`})
             }else{
                 const newCreator = await userDAO.getUserById(updatedFamily.members[0]);
                 updatedFamily = await familiesDAO
                                 .updateFamilyById(idfamily, { creator: updatedFamily.members[0], $addToSet:{admins: updatedFamily.members[0] } }, {new :true});
-                return res.status(200).json({message: `User ${updatedUser.username} deleted from ${updatedFamily.name} and now ${newCreator.username} is creator`})
+                return res.status(200).json({members : updatedFamily.members, creator : updatedFamily.creator, family: updatedFamily._id , message: `Usuario ${updatedUser.username} eliminado y ahora ${newCreator.username} es creador`})
             }
         }
-        return res.status(200).json({message: `User ${updatedUser.username} deleted from ${updatedFamily.name}`})
+        return res.status(200).json({members : updatedFamily.members, family: updatedFamily._id ,message: `Usuario ${updatedUser.username} eliminado `})
     } catch (error) {
         return res.status(500).send(error.message)
     }
@@ -148,7 +128,7 @@ familiesController.addAdminFamily = async (req, res)=>{
         const existFamily = await familiesDAO.getFamilyById(idfamily);
         if(!existFamily)return res.status(404).json({message:"Family don't exist"});
         const isAdmin = existFamily.admins.some(memberId =>memberId.toString() === userId);
-        if(!isAdmin) return res.status(400).json({message:"You aren't admin"});
+        if(!isAdmin) return res.status(400).send("No eres administrador");
         const existUsername = await userDAO.getUserByCondition({username});
         if(!existUsername) return res.status(404).json({message:`User ${username} don't exist`});
 
@@ -156,10 +136,10 @@ familiesController.addAdminFamily = async (req, res)=>{
         if(!isMember) return res.status(400).json({message:"Username is not member"});
 
         const usernameIsAdmin = existFamily.admins.some(memberId => memberId.toString() === existUsername._id.toString());
-        if(usernameIsAdmin) return res.status(400).json({message:"Username is admin"});
+        if(usernameIsAdmin) return res.status(400).send(`Usuario ${username} ya es administrador.`);
 
         const familyUpdate = await familiesDAO.updateFamilyById(idfamily,{$addToSet:{admins: existUsername._id}}, { new: true});
-        return res.status(200).json(familyUpdate);
+        return res.status(200).json({admins : familyUpdate.admins, family : familyUpdate._id, message:`Usuario ${username} agregado como administrador`});
     } catch (error) {
         return res.status(500).send(error.message)
     }
@@ -178,11 +158,11 @@ familiesController.deleteAdminFamily = async (req, res)=>{
         const isHe = existUsername._id.toString() === userId;
         const userIsCreator = existFamily.creator.toString() === existUsername._id.toString();
         const userIsAdmin = existFamily.admins.some(memberId =>memberId.toString() === existUsername._id.toString());
-        if( !agentIsAdmin && !isHe )return res.status(400).json({message:"No authorizate"});
-        if( userIsCreator && !isHe )return res.status(400).json({message:"Cannot remove admin from creator"});
-        if( !userIsAdmin)return res.status(400).json({message:`${username} don't have admin`});
+        if( !agentIsAdmin && !isHe )return res.status(400).send("No eres administrador");
+        if( userIsCreator && !isHe )return res.status(400).send("No puede remover al creador de administradores");
+        if( !userIsAdmin)return res.status(400).send(`${username} no es administrador`);
         if(existFamily.members.length === 1){
-            return res.status(200).json({message: `You are the unique member and admin, maybe you need delete the family `})
+            return res.status(400).json({message: `You are the unique member and admin, maybe you need delete the family `})
         }
         var updatedFamily = await familiesDAO
                                 .updateFamilyById(idfamily, { $pull: { admins : existUsername._id }}, {new :true});
@@ -191,16 +171,16 @@ familiesController.deleteAdminFamily = async (req, res)=>{
                 const newCreator = await userDAO.getUserById(updatedFamily.admins[0]);
                 updatedFamily = await familiesDAO
                                 .updateFamilyById(idfamily, { creator: updatedFamily.admins[0] }, {new :true});
-                return res.status(200).json({message: `User ${username} removed admin from ${updatedFamily.name} and now ${newCreator.username} is creator`})
+                return res.status(200).json({admins : updatedFamily.admins, creator : updatedFamily.creator, family : updatedFamily._id, message: `Usuario ${username} removido de administrado y ahora ${newCreator.username} es creador`})
             }else{
                 const newAdmin = updatedFamily.members.find( member => member.toString() !== existUsername._id.toString() )
                 const newCreator = await userDAO.getUserById(newAdmin);
                 updatedFamily = await familiesDAO
                                 .updateFamilyById(idfamily, { creator: newAdmin, $addToSet:{admins: newAdmin } }, {new :true});
-                return res.status(200).json({message: `User ${username} removed admin from ${updatedFamily.name} and now ${newCreator.username} is creator`})
+                return res.status(200).json({admins : updatedFamily.admins, creator : updatedFamily.creator, family : updatedFamily._id, message: `Usuario ${username} removido de administrado y ahora ${newCreator.username} es creador`})
             }
         }
-        return res.status(200).json({message: `User ${username} removed admin from ${updatedFamily.name}`})
+        return res.status(200).json({admins : updatedFamily.admins, family : updatedFamily._id, message: `Usuario ${username} removido de administrador.`})
     }catch(error){
         return res.status(500).send(error.message)
     }
