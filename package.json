@@ -4,7 +4,8 @@
   "description": "API para app prestaLy",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon index"
+    "dev": "nodemon index",
+    "start": "node index"
   },
   "author": "JGutierrez1457",
   "license": "ISC",
