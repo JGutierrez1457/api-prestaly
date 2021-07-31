@@ -23,6 +23,20 @@ familiesController.getMyFamilies = async (req, res)=>{
         return res.status(500).send(error.message)
     }
 }
+familiesController.getMembersByFamily = async (req, res)=>{
+    const userId = req.userId;
+    const { idfamily } = req.params 
+    try {
+        const existUser = await userDAO.getUserById(userId);
+        if(!existUser)return res.status(404).send("User don't exist");
+
+        const members = await familiesDAO.getFamilyByIdPopulateMembers(idfamily);
+        return res.status(200).json(members);
+
+    } catch (error) {
+        return res.status(500).send(error.message)
+    }
+}
 
 familiesController.createFamily = async ( req, res)=>{
     const { name, password, confirmPassword } = req.body;

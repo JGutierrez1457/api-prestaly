@@ -7,13 +7,15 @@ balancesModel.statics.createBalance = async function(query){
     return newBalance;
 }
 balancesModel.statics.getBalancesByFamilyIdPopulate = async function(idfamily){
-    const balances = await this.find({family: idfamily}).select('-_id -createdAt -updatedAt -__v')
-                                .populate('balance._id','-_id -email -password -families -createdAt -updatedAt -__v')
+    const balances = await this.find({family: idfamily}).select('-_id -updatedAt -__v')
+                                .populate('creator','username first_name last_name email')
+                                .populate('balance._id','-email -password -families -createdAt -updatedAt -__v')
                                 .exec();
     return balances;
 }
 balancesModel.statics.getBalancesByIdPopulate = async function(_id){
-    const balances = await this.findById(_id).select('-_id -createdAt -updatedAt -__v')
+    const balances = await this.findById(_id).select('-_id -updatedAt -__v')
+                                .populate('creator','username first_name last_name email')
                                 .populate('balance._id','-_id -email -password -families -createdAt -updatedAt -__v')
                                 .exec();
     return balances;

@@ -3,6 +3,7 @@ const familiesController = require('./families.controller');
 const auth = require('../../middleware/auth');
 
 router.get('/',auth, familiesController.getMyFamilies);
+router.get('/:idfamily/members',auth, familiesController.getMembersByFamily);
 /* router.get('/:idfamily',auth,familiesController.getFamily);
 router.get('/:idfamily/members',auth,familiesController.getMembersFamily); */
 

@@ -30,9 +30,32 @@ loansController.getNoBalancedLoans = async (req, res)=>{
         if(!userIsMember) return res.status(400).json({message:"User is not member"});
 
         const loansNoBalancedPopulated = await loansDAO.getLoansNoBalancedByFamilyIdPopulate(idfamily);
+        const loansFormated = loansNoBalancedPopulated.map( l =>({
+                                                                    _id : l._id,
+                                                                    creator : l.creator.username,
+                                                                    date : l.date,
+                                                                    subject : l.subject,
+                                                                    quantity : l.quantity,
+                                                                    spenders : l.spenders.map( s =>({ username : s._id.username,
+                                                                                                      expense : s.expense
+                                                                                                    })
+                                                                                            ),
+                                                                    beneficiaries : l.beneficiaries.map( b =>b.username),
+                                                                    own_products : l.own_products.map( o =>({ username : o._id.username,
+                                                                                                              products : o.products    
+                                                                                                            })),
+                                                                    exclude_products : l.exclude_products.map( e =>({ username : e._id.username,
+                                                                                                              products : e.products    
+                                                                                                            })),
+                                                                    sub_balance : l.sub_balance.map( s =>({ username : s._id.username,
+                                                                                                            amount : s.amount
+                                                                                                            })),
+                                                                    images : l.images
 
+                                                                })
+                                                            )
 
-        return res.status(200).json(loansNoBalancedPopulated)
+        return res.status(200).json({ loans : loansFormated, idfamily : idfamily  })
     } catch (error) {
         return res.status(500).send(error.message)
     }
@@ -151,21 +174,21 @@ loansController.addLoan = async(req, res)=>{
     const { date, subject, quantity, spenders, beneficiaries, own_products, exclude_products  } = req.body;
     try {
         const existFamily = await familiesDAO.getFamilyByIdPopulateMembers(idfamily);
-        if(!existFamily)return res.status(404).json({message:"Family don't exist"});
+        if(!existFamily)return res.status(404).send("Family don't exist");
         
         const userIsMember = existFamily.members.some(member => member._id.toString() === userId);
-        if(!userIsMember) return res.status(400).json({message:"User is not member"});
+        if(!userIsMember) return res.status(400).send("User is not member");
         
         for (let spender of spenders){
             const spenderIsMember = existFamily.members.some(member => member.username === spender.username);
-            if(!spenderIsMember) return res.status(400).json({message:`Spender ${spender.username} is not member`});
+            if(!spenderIsMember) return res.status(400).send(`Spender ${spender.username} is not member`);
         }
         for (let beneficiary of beneficiaries){
             const beneficiariesIsMember = existFamily.members.some(member => member.username === beneficiary);
-            if(!beneficiariesIsMember) return res.status(400).json({message:`Beneficiary ${beneficiary} is not member`});
+            if(!beneficiariesIsMember) return res.status(400).send(`Beneficiary ${beneficiary} is not member`);
         }
         const totalExpenses = Math.round(spenders.map( spender => spender.expense ).reduce((acc, expense)=>acc+expense, 0.0) * 100 )/100;
-        if(totalExpenses!==quantity)return res.status(400).json({message: `Quantity ( ${quantity} ) and total expenses ( ${totalExpenses} ) aren't equal`})
+        if(totalExpenses!==quantity)return res.status(400).send(`Gasto total ( ${quantity} ) y el total de prestamo ( ${totalExpenses} ) no coinciden`)
         
         const involvedMembers =[...new Set([...spenders.map(spender => spender.username),...beneficiaries])];
         const sub_balance = involvedMembers.map( involved => ({_id:involved,amount:0}));
@@ -192,10 +215,34 @@ loansController.addLoan = async(req, res)=>{
             sub_balance:final_sub_balanceWithId
         }
         const newLoan = await loansDAO.createLoan(query);
+        const loan = await loansDAO.getLoanById(newLoan._id)
+        const loansFormated = {
+            _id : loan._id,
+            creator : loan.creator.username,
+            date : loan.date,
+            subject : loan.subject,
+            quantity : loan.quantity,
+            spenders : loan.spenders.map( s =>({ username : s._id.username,
+                                              expense : s.expense
+                                            })
+                                    ),
+            beneficiaries : loan.beneficiaries.map( b =>b.username),
+            own_products : loan.own_products.map( o =>({ username : o._id.username,
+                                                      products : o.products    
+                                                    })),
+            exclude_products : loan.exclude_products.map( e =>({ username : e._id.username,
+                                                      products : e.products    
+                                                    })),
+            sub_balance : loan.sub_balance.map( s =>({ username : s._id.username,
+                                                    amount : s.amount
+                                                    })),
+            images : loan.images
 
+        }
 
-        return res.status(200).json({message: `Loan created in family ${existFamily.name}`})
+        return res.status(200).json({ loan: loansFormated ,family : idfamily,message: `Prestamo creado en familia ${existFamily.name}`})
     } catch (error) {
+        console.log(error)
         return res.status(500).send(error.message)
     }
 }
@@ -205,24 +252,24 @@ loansController.updateLoan = async(req, res)=>{
     const { date, subject, quantity, spenders, beneficiaries, own_products, exclude_products  } = req.body;
     try {
         const existFamily = await familiesDAO.getFamilyByIdPopulateMembers(idfamily);
-        if(!existFamily)return res.status(404).json({message:"Family don't exist"});
+        if(!existFamily)return res.status(404).send("Family don't exist");
 
         const existLoan = await loansDAO.getLoanById(idloans);
-        if(!existLoan)return res.status(404).json({message:"Loan don't exist"});
+        if(!existLoan)return res.status(404).send("Loan don't exist");
         
         const userIsMember = existFamily.members.some(member => member._id.toString() === userId);
-        if(!userIsMember) return res.status(400).json({message:"User is not member"});
+        if(!userIsMember) return res.status(400).send("User is not member");
         
         for (let spender of spenders){
             const spenderIsMember = existFamily.members.some(member => member.username === spender.username);
-            if(!spenderIsMember) return res.status(400).json({message:`Spender ${spender.username} is not member`});
+            if(!spenderIsMember) return res.status(400).send(`Prestador ${spender.username} no es miembro`);
         }
         for (let beneficiary of beneficiaries){
             const beneficiariesIsMember = existFamily.members.some(member => member.username === beneficiary);
-            if(!beneficiariesIsMember) return res.status(400).json({message:`Beneficiary ${beneficiary} is not member`});
+            if(!beneficiariesIsMember) return res.status(400).send(`Beneficiado ${beneficiary} no es miembro`);
         }
         const totalExpenses =  Math.round(spenders.map( spender => spender.expense ).reduce((acc, expense)=>acc+expense, 0.0) * 100 )/100;
-        if(totalExpenses!==quantity)return res.status(400).json({message: `Quantity ( ${quantity} ) and total expenses ( ${totalExpenses} ) aren't equal`})
+        if(totalExpenses!==quantity)return res.status(400).send(`Gasto total ( ${quantity} ) y el total de prestamo ( ${totalExpenses} ) no coinciden`)
         
         const involvedMembers =[...new Set([...spenders.map(spender => spender.username),...beneficiaries])];
         const sub_balance = involvedMembers.map( involved => ({_id:involved,amount:0}));
@@ -246,8 +293,31 @@ loansController.updateLoan = async(req, res)=>{
             exclude_products: exclude_productsWithId,
             sub_balance:final_sub_balanceWithId
         }
-        const updatedLoan = await loansDAO.updateLoanById(idloans,query,{new : true })
-        return res.status(200).json({message: `Loan updated in family ${existFamily.name}`})
+        const updatedLoan = await loansDAO.updateLoanById(idloans,query,{new : true });
+        const loansFormated = {
+            _id : updatedLoan._id,
+            creator : updatedLoan.creator.username,
+            date : updatedLoan.date,
+            subject : updatedLoan.subject,
+            quantity : updatedLoan.quantity,
+            spenders : updatedLoan.spenders.map( s =>({ username : s._id.username,
+                                              expense : s.expense
+                                            })
+                                    ),
+            beneficiaries : updatedLoan.beneficiaries.map( b =>b.username),
+            own_products : updatedLoan.own_products.map( o =>({ username : o._id.username,
+                                                      products : o.products    
+                                                    })),
+            exclude_products : updatedLoan.exclude_products.map( e =>({ username : e._id.username,
+                                                      products : e.products    
+                                                    })),
+            sub_balance : updatedLoan.sub_balance.map( s =>({ username : s._id.username,
+                                                    amount : s.amount
+                                                    })),
+            images : updatedLoan.images
+
+        }
+        return res.status(200).json({loan:loansFormated,idloan: updatedLoan._id, family: idfamily,message: `Prestamo actualizado en familia ${existFamily.name}`})
 
     }catch(error){
         return res.status(500).send(error.message)

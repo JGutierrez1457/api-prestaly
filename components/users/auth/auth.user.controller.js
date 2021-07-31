@@ -15,7 +15,7 @@ authUserController.signIn = async(req, res)=>{
 
         const token = jwt.sign({username:existUser.username, id: existUser._id},'test',{expiresIn:'1h'})
 
-        return res.status(200).json({result:{username:existUser.username,full_name:existUser.first_name+(existUser.last_name?(' '+existUser.last_name):('')), email:existUser?.email, families: existUser.families}, token,message:{severity:'success',text:'Sign In Successfully'}})
+        return res.status(200).json({user:{username:existUser.username,full_name:existUser.first_name+(existUser.last_name?(' '+existUser.last_name):('')), email:existUser?.email},families : existUser.families, token,message:{severity:'success',text:'Sign In Successfully'}})
     } catch (error) {
         return res.status(500).json({message:'Something went wrong'})
     }

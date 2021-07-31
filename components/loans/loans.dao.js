@@ -7,7 +7,15 @@ loansModel.statics.getAllLoans = async function(){
     return allLoans;
 }
 loansModel.statics.getLoanById = async function(_id){
-    const loan = await this.findById(_id).exec();
+    const loan = await this.findById(_id).select('-createdAt -updatedAt -__v')
+    .populate('family','-_id name')
+    .populate('creator','-_id username')
+    .populate('spenders._id','-_id username')
+    .populate('beneficiaries','-_id username')
+    .populate('own_products._id','-_id username')
+    .populate('exclude_products._id','-_id username')
+    .populate('sub_balance._id','-_id username')
+    .exec();
     return loan;
 }
 loansModel.statics.getLoanByIdPopulate = async function(_id){
@@ -31,7 +39,7 @@ loansModel.statics.getLoansNoBalancedByFamilyId = async function(_idfamily){
     return loans;
 }
 loansModel.statics.getLoansNoBalancedByFamilyIdPopulate = async function(_idfamily){
-    const loans = await this.find({ family : _idfamily}).exists('balance',false).sort('date').select('-_id -createdAt -updatedAt -__v')
+    const loans = await this.find({ family : _idfamily}).exists('balance',false).sort('date').select('-createdAt -updatedAt -__v')
                                 .populate('family','-_id name')
                                 .populate('creator','-_id username')
                                 .populate('spenders._id','-_id username')
@@ -61,7 +69,15 @@ loansModel.statics.createLoan = async function( query ){
     return newLoan;
 }
 loansModel.statics.updateLoanById = async function(_id, query, options){
-    const updatedLoan = await this.findByIdAndUpdate(_id, query, options).exec();
+    const updatedLoan = await this.findByIdAndUpdate(_id, query, options).select('-createdAt -updatedAt -__v')
+                                                                         .populate('family','-_id name')
+                                                                         .populate('creator','-_id username')
+                                                                         .populate('spenders._id','-_id username')
+                                                                         .populate('beneficiaries','-_id username')
+                                                                         .populate('own_products._id','-_id username')
+                                                                         .populate('exclude_products._id','-_id username')
+                                                                         .populate('sub_balance._id','-_id username')
+                                                                         .exec();
     return updatedLoan;
 }
 loansModel.statics.updateLoansNoBalancedBYFamilyId = async function(_idfamily, query, options){
