@@ -345,7 +345,8 @@ loansController.putImages = async(req, res)=>{
             return res.status(400).json({message:"User is not member"})};
 
         const updatedLoan = await loansDAO.updateLoanById(idloans,{$addToSet: {images: { name, key, size, url  } }},{new : true });
-        return res.status(200).json('Image uploaded');
+        const idimage = updatedLoan.images.find(im => im.key === key)._id;
+        return res.status(200).json({ image: { _id: idimage, name, size, url, key} , family : idfamily, idloan: idloans, message : 'Imagen subida.' });
 
     } catch (error) {
         return res.status(500).send(error.message)
@@ -375,7 +376,7 @@ loansController.deleteImage = async(req, res)=>{
         await s3.deleteObject({Bucket: process.env.S3_BUCKET, Key: key }).promise();
         const updatedLoan = await loansDAO.updateLoanById(idloans, { $pull: { images : { _id : idimage }}}, { new: true});
 
-        return res.status(200).send(`Image ${nameImage} deleted`)
+        return res.status(200).json({message : `Imagen ${nameImage} borrada`, idloan : idloans, idimage, family :idfamily})
     } catch (error) {
         return res.status(500).send(error.message)
     }

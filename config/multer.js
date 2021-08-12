@@ -25,7 +25,7 @@ const storageTypes = {
         key: (req, file, cb)=>{
             crypto.randomBytes(16, (err, hash)=>{
                 if(err)cb(err);
-                const fileName = `images/${hash.toString('hex')}-${file.originalname}`;
+                const fileName = `dev/images/${hash.toString('hex')}-${file.originalname}`;
                 cb(null, fileName);
             })
         }
@@ -44,7 +44,7 @@ module.exports = {
         if(allowedMimes.includes(file.mimetype)){
             cb(null, true);
         }else{
-            cb(new Erro("Invalid file type."))
+            cb(new Error("Invalid file type."))
         }
     }
 }

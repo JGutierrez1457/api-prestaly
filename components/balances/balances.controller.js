@@ -89,7 +89,7 @@ balancesController.generateBalance = async (req, res) => {
         const fileContent = fs.createReadStream(pathFile);
         await s3.putObject({
             Bucket: process.env.S3_BUCKET,
-            Key: `balances/${filename}`,
+            Key: `dev/balances/${filename}`,
             Body: fileContent,
             ContentType: 'application/pdf',
             ContentDisposition: 'inline',

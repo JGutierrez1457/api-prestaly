@@ -31,6 +31,10 @@ familiesController.getMembersByFamily = async (req, res)=>{
         if(!existUser)return res.status(404).send("User don't exist");
 
         const members = await familiesDAO.getFamilyByIdPopulateMembers(idfamily);
+
+        const userIsMember = members.members.some(memberId => memberId._id.toString() === existUser._id.toString());
+        if(!userIsMember) return res.status(400).send('Usuario no es miembro');
+
         return res.status(200).json(members);
 
     } catch (error) {
@@ -41,14 +45,15 @@ familiesController.getMembersByFamily = async (req, res)=>{
 familiesController.createFamily = async ( req, res)=>{
     const { name, password, confirmPassword } = req.body;
     const userId = req.userId;
-    if(password!==confirmPassword)return res.status(400).json({message:{severity:'warning',text:"Password don't match."}});
+    if(password!==confirmPassword)return res.status(400).send('Las contraseñas no coinciden');
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     const familyQuery = { name,password:hashedPassword, members:[userId],admins:[userId],creator:userId};
     try {
         const newFamily = await familiesDAO.createFamily(familyQuery);
-        await userDAO.editUserById(userId,{$addToSet:{ families: {_id:newFamily._id, name: newFamily.name}}},{ new: true});
-        return res.status(200).json(newFamily)
+        const userUpdate =await userDAO.editUserById(userId,{$addToSet:{ families: {_id:newFamily._id, name: newFamily.name}}},{ new: true});
+
+        return res.status(200).json({families : userUpdate.families, family : { _id : newFamily._id, name : newFamily.name}, message : `Familia ${newFamily.name} creada`})
     } catch (error) {
         return res.status(500).send(error.message)
     }
@@ -120,15 +125,18 @@ familiesController.deleteMemberFamily = async (req, res)=>{
                 const newCreator = await userDAO.getUserById(updatedFamily.admins[0]);
                 updatedFamily = await familiesDAO
                                 .updateFamilyById(idfamily, { creator: updatedFamily.admins[0] }, {new :true});
-                return res.status(200).json({members : updatedFamily.members, creator : updatedFamily.creator, family: updatedFamily._id , message: `Usuario ${updatedUser.username} eliminado y ahora ${newCreator.username} es creador`})
+                const infoUser = await userDAO.getUserById(userId);            
+                return res.status(200).json({members : updatedFamily.members, familiesUser : infoUser.families, creator : updatedFamily.creator, family: updatedFamily._id , message: `Usuario ${updatedUser.username} eliminado y ahora ${newCreator.username} es creador`})
             }else{
                 const newCreator = await userDAO.getUserById(updatedFamily.members[0]);
                 updatedFamily = await familiesDAO
                                 .updateFamilyById(idfamily, { creator: updatedFamily.members[0], $addToSet:{admins: updatedFamily.members[0] } }, {new :true});
-                return res.status(200).json({members : updatedFamily.members, creator : updatedFamily.creator, family: updatedFamily._id , message: `Usuario ${updatedUser.username} eliminado y ahora ${newCreator.username} es creador`})
+                const infoUser = await userDAO.getUserById(userId);
+                return res.status(200).json({members : updatedFamily.members, familiesUser : infoUser.families, creator : updatedFamily.creator, family: updatedFamily._id , message: `Usuario ${updatedUser.username} eliminado y ahora ${newCreator.username} es creador`})
             }
         }
-        return res.status(200).json({members : updatedFamily.members, family: updatedFamily._id ,message: `Usuario ${updatedUser.username} eliminado `})
+        const infoUser = await userDAO.getUserById(userId);
+        return res.status(200).json({members : updatedFamily.members, family: updatedFamily._id, familiesUser : infoUser.families  ,message: `Usuario ${updatedUser.username} eliminado `})
     } catch (error) {
         return res.status(500).send(error.message)
     }
@@ -202,13 +210,14 @@ familiesController.deleteAdminFamily = async (req, res)=>{
 familiesController.deleteFamily = async (req, res)=>{
     const idFamily = req.params.idfamily;
     const userId = req.userId;
+    console.log(req.body)
     const { password } = req.body;
     try {
         const existFamily = await familiesDAO.getFamilyById(idFamily);
         if(!existFamily)return res.status(404).send("Family don't exist");
         if(userId!==existFamily.creator.toString())return res.status(400).send("No authorizate");
         const comparePassword = await bcrypt.compare(password, existFamily.password);
-        if(!comparePassword)return res.status(400).send("Credential Incorrect");
+        if(!comparePassword)return res.status(400).send("Credencial incorrecto");
         const familyDeleted = await familiesDAO.deleteFamilyById(idFamily,null);
         await userDAO.editManyUser({ $pull: { families : { _id : familyDeleted._id }}},{ multi: true});
         const loansDeleted = await loansDAO.getLoansByFamilyId(idFamily);
@@ -222,9 +231,13 @@ familiesController.deleteFamily = async (req, res)=>{
                 }).promise()
             }
         }
-        return res.status(200).json({message:{severity:'success',text:`Family ${familyDeleted.name} deleted`}});
+        const infoUser = await userDAO.getUserById(userId);
+
+        return res.status(200).json({ families : infoUser.families,message:`Familia ${familyDeleted.name} borrada`});
         
     } catch (error) {
+        console.log(error)
+
         return res.status(500).send(error.message)
     }
 }
