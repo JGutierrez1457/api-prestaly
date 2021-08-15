@@ -180,11 +180,29 @@ module.exports = async function (balance, members, final_balance){
         }
         const imageBase64ByLoan = await Promise.all(promiseArray)
         for( let imageBase64 of imageBase64ByLoan){
-            const result = Object.entries(imageBase64).map(([key, value])=>[Number(key), value]);
+       /*      var base64 = Object.values(imageBase64)[0];
+            var bufferImage = Buffer.from(base64, 'base64');
+            jo.rotate(bufferImage)
+                .then(({buffer})=>{
+                    console.log(buffer)
+                    bufferImage = buffer;
+                })
+                .catch((error)=>{
+                    if(error.code === jo.errors.read_exif){
+                        console.log(error.code)
+                        return;
+                    }
+
+                })
+            const newBase64 = Buffer.from(bufferImage.toString('base64'));
+            console.log(newBase64.substr(0,23)) */
+            const result = Object.entries(imageBase64).map(([key, value])=>{
+                return [Number(key), value]
+            });
             content[indexsColumns[result[0][0]]].columns[1].stack.push(
                 {
                    image : result[0][1],
-                   fit : [ 100, 100]
+                   fit : [ 140, 140]
                 }, '\n');
 }
     const docDefinition = {
