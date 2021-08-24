@@ -399,7 +399,7 @@ loansController.deleteLoan = async(req, res)=>{
                     Key: image.key
             }).promise()
         }
-        return res.status(200).json({message: `Loan deleted in family ${existFamily.name}`})
+        return res.status(200).json({idloan : deletedLoan._id, family : idfamily,message: `Prestamo ${deletedLoan.subject} borrado`})
 
     }catch(error){
         return res.status(500).send(error.message)
