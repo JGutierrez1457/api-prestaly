@@ -7,7 +7,17 @@ const dotenv = require('dotenv');
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
-app.use(cors());
+const whiteList = ["https://prestaly.netlify.app"];
+const corsOptions = {
+    origin: function (origin, callback) {
+        if (whiteList.indexOf(origin) !== -1) {
+          callback(null, true)
+        } else {
+          callback(new Error('Not allowed by CORS'))
+        }
+      }
+}
+app.use(cors(corsOptions));
 if(process.env.NODE_ENV !== 'production'){
     dotenv.config();
     app.use(morgan('dev'));
