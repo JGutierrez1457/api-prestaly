@@ -63,6 +63,7 @@ loansController.getNoBalancedLoans = async (req, res)=>{
 loansController.getNoBalancedLoansPDF = async (req, res)=>{
     const userId = req.userId;
     const { idfamily } = req.params;
+    let pathFile = "";
     try {
         const existFamily = await familiesDAO.getFamilyByIdPopulateMembers(idfamily);
         if(!existFamily)return res.status(404).json({message:"Family don't exist"});
@@ -90,7 +91,7 @@ loansController.getNoBalancedLoansPDF = async (req, res)=>{
 
         const filename = await generatePDF(loansNoBalancedPopulated, memberUsernameFamily, { balance : final_balance} );
 
-        const pathFile = `./files/balanced/${filename}`;
+        pathFile = `./files/balanced/${filename}`;
         const fileStats = await new Promise((resolve, reject)=>{
             fs.stat(pathFile, (err, fileStats)=>{
                 if(err){
@@ -100,14 +101,19 @@ loansController.getNoBalancedLoansPDF = async (req, res)=>{
                 resolve(fileStats)
             });
         })
-        const fileContent =fs.createReadStream(pathFile);
+        console.log("read Stream")
+        const fileContent = fs.createReadStream(pathFile);
+        console.log("Finish read Stream")
         res.setHeader('Content-Length', fileStats.size);
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename=pre-balance.pdf');
         fileContent.pipe(res);
-        //fs.unlinkSync(pathFile);
     } catch (error) {
         return res.status(500).send(error.message)
+    }finally{
+        console.log("Delete File")
+        fs.unlinkSync(pathFile);
+        console.log("Finish Delete File")
     }
 }
 loansController.getLoan = async(req, res)=>{
