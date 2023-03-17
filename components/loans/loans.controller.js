@@ -101,13 +101,13 @@ loansController.getNoBalancedLoansPDF = async (req, res)=>{
             });
         })
         const fileContent = fs.createReadStream(pathFile);
-        fileContent.on("close", ()=>{
-            fs.unlinkSync(pathFile);
-        });
         res.setHeader('Content-Length', fileStats.size);
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename=pre-balance.pdf');
         fileContent.pipe(res);
+        fileContent.on("close", ()=>{
+            fs.unlink(pathFile);
+        });
     } catch (error) {
         return res.status(500).send(error.message)
     }
