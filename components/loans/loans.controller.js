@@ -90,7 +90,7 @@ loansController.getNoBalancedLoansPDF = async (req, res)=>{
 
         const filename = await generatePDF(loansNoBalancedPopulated, memberUsernameFamily, { balance : final_balance} );
 
-        const pathFile = path.join(process.cwd(),`files/balanced/${filename}`);
+        const pathFile = path.join(`files/balanced/${filename}`);
         const fileStats = await new Promise((resolve, reject)=>{
             fs.stat(pathFile, (err, fileStats)=>{
                 if(err){
