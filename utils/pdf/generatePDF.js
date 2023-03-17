@@ -235,7 +235,7 @@ module.exports = async function (balance, members, final_balance){
     }
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
     const hash = uuidv4();
-    const filename = path.join(`./files/balanced/${hash}-balance.pdf`);
+    const filename = `./files/balanced/${hash}-balance.pdf`;
     const promiseCreatePDF = new Promise((resolve, reject)=>{
         const stream = fs.createWriteStream(filename);
         pdfDoc.pipe(stream);
