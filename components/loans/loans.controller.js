@@ -63,7 +63,6 @@ loansController.getNoBalancedLoans = async (req, res)=>{
 loansController.getNoBalancedLoansPDF = async (req, res)=>{
     const userId = req.userId;
     const { idfamily } = req.params;
-    let pathFile = "";
     try {
         const existFamily = await familiesDAO.getFamilyByIdPopulateMembers(idfamily);
         if(!existFamily)return res.status(404).json({message:"Family don't exist"});
@@ -91,7 +90,7 @@ loansController.getNoBalancedLoansPDF = async (req, res)=>{
 
         const filename = await generatePDF(loansNoBalancedPopulated, memberUsernameFamily, { balance : final_balance} );
 
-        pathFile = path.join(process.cwd(),`files/balanced/${filename}`);
+        const pathFile = path.join(process.cwd(),`files/balanced/${filename}`);
         const fileStats = await new Promise((resolve, reject)=>{
             fs.stat(pathFile, (err, fileStats)=>{
                 if(err){
@@ -106,10 +105,9 @@ loansController.getNoBalancedLoansPDF = async (req, res)=>{
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename=pre-balance.pdf');
         fileContent.pipe(res);
+        fs.unlinkSync(pathFile);
     } catch (error) {
         return res.status(500).send(error.message)
-    } finally{
-        fs.unlinkSync(pathFile);
     }
 }
 loansController.getLoan = async(req, res)=>{

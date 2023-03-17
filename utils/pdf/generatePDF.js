@@ -4,6 +4,8 @@ const fs = require('fs');
 const { v4 : uuidv4 } = require('uuid');
 const dateFormat = require('dateformat');
 const base64Img = require('base64-img');
+const path = require('path');
+
 module.exports = async function (balance, members, final_balance){
         const totalMembers = members.members.length;
         const membersUsername = members.members.map( m => m.username);
@@ -233,7 +235,7 @@ module.exports = async function (balance, members, final_balance){
     }
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
     const hash = uuidv4();
-    const filename = `project/api-prestaly/files/balanced/${hash}-balance.pdf`;
+    const filename = path.join(process.cwd(),`files/balanced/${hash}-balance.pdf`);
     const promiseCreatePDF = new Promise((resolve, reject)=>{
         const stream = fs.createWriteStream(filename);
         pdfDoc.pipe(stream);
