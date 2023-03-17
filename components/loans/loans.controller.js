@@ -107,7 +107,7 @@ loansController.getNoBalancedLoansPDF = async (req, res)=>{
         fileContent.pipe(res);
         fileContent.close();
         fileContent.on("close", function (){
-            return fs.unlink(pathFile);
+            fs.unlinkSync(pathFile);
         });
     } catch (error) {
         return res.status(500).send(error.message)
