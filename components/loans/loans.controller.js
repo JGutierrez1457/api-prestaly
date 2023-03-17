@@ -105,8 +105,7 @@ loansController.getNoBalancedLoansPDF = async (req, res)=>{
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename=pre-balance.pdf');
         fileContent.pipe(res);
-        fileContent.close();
-        fileContent.on("close", function (){
+        fileContent.on("end", function (){
             fs.unlinkSync(pathFile);
         });
     } catch (error) {
